@@ -1,0 +1,415 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A084667D2EA9356D004C7FC7 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A084667C2EA9356D004C7FC7 /* Cocoa.framework */; };
+		A084667F2EA93579004C7FC7 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A084667E2EA93579004C7FC7 /* CoreVideo.framework */; };
+		A08466812EA9357F004C7FC7 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A08466802EA9357F004C7FC7 /* IOKit.framework */; };
+		A08466842EA935A2004C7FC7 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A08466832EA935A2004C7FC7 /* OpenGL.framework */; };
+		A08466852EA935A9004C7FC7 /* libglfw3.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A08466822EA93596004C7FC7 /* libglfw3.a */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A084664B2EA92DDB004C7FC7 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A036ECFD2EC39D6C0079C963 /* example_apple_metal.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = example_apple_metal.xcodeproj; sourceTree = "<group>"; };
+		A036ED022EC39D6C0079C963 /* example_apple_opengl2.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = example_apple_opengl2.xcodeproj; sourceTree = "<group>"; };
+		A084664D2EA92DDB004C7FC7 /* SymulacjaFinansowaPolski */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SymulacjaFinansowaPolski; sourceTree = BUILT_PRODUCTS_DIR; };
+		A084667C2EA9356D004C7FC7 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		A084667E2EA93579004C7FC7 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
+		A08466802EA9357F004C7FC7 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		A08466822EA93596004C7FC7 /* libglfw3.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglfw3.a; path = ../../../OpenGL/lib/libglfw3.a; sourceTree = "<group>"; };
+		A08466832EA935A2004C7FC7 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A084664F2EA92DDB004C7FC7 /* SymulacjaFinansowaPolski */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SymulacjaFinansowaPolski;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A084664A2EA92DDB004C7FC7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A084667D2EA9356D004C7FC7 /* Cocoa.framework in Frameworks */,
+				A08466852EA935A9004C7FC7 /* libglfw3.a in Frameworks */,
+				A08466842EA935A2004C7FC7 /* OpenGL.framework in Frameworks */,
+				A084667F2EA93579004C7FC7 /* CoreVideo.framework in Frameworks */,
+				A08466812EA9357F004C7FC7 /* IOKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A036EDB42EC39D6C0079C963 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A036EDB62EC39D6C0079C963 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A08466442EA92DDB004C7FC7 = {
+			isa = PBXGroup;
+			children = (
+				A084664F2EA92DDB004C7FC7 /* SymulacjaFinansowaPolski */,
+				A084667B2EA9356C004C7FC7 /* Frameworks */,
+				A084664E2EA92DDB004C7FC7 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A084664E2EA92DDB004C7FC7 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A084664D2EA92DDB004C7FC7 /* SymulacjaFinansowaPolski */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A084667B2EA9356C004C7FC7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A08466832EA935A2004C7FC7 /* OpenGL.framework */,
+				A08466822EA93596004C7FC7 /* libglfw3.a */,
+				A08466802EA9357F004C7FC7 /* IOKit.framework */,
+				A084667E2EA93579004C7FC7 /* CoreVideo.framework */,
+				A084667C2EA9356D004C7FC7 /* Cocoa.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A084664C2EA92DDB004C7FC7 /* SymulacjaFinansowaPolski */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A08466542EA92DDB004C7FC7 /* Build configuration list for PBXNativeTarget "SymulacjaFinansowaPolski" */;
+			buildPhases = (
+				A08466492EA92DDB004C7FC7 /* Sources */,
+				A084664A2EA92DDB004C7FC7 /* Frameworks */,
+				A084664B2EA92DDB004C7FC7 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A084664F2EA92DDB004C7FC7 /* SymulacjaFinansowaPolski */,
+			);
+			name = SymulacjaFinansowaPolski;
+			packageProductDependencies = (
+			);
+			productName = SymulacjaFinansowaPolski;
+			productReference = A084664D2EA92DDB004C7FC7 /* SymulacjaFinansowaPolski */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A08466452EA92DDB004C7FC7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1640;
+				TargetAttributes = {
+					A084664C2EA92DDB004C7FC7 = {
+						CreatedOnToolsVersion = 16.4;
+					};
+				};
+			};
+			buildConfigurationList = A08466482EA92DDB004C7FC7 /* Build configuration list for PBXProject "SymulacjaFinansowaPolski" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A08466442EA92DDB004C7FC7;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A084664E2EA92DDB004C7FC7 /* Products */;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = A036EDB42EC39D6C0079C963 /* Products */;
+					ProjectRef = A036ECFD2EC39D6C0079C963 /* example_apple_metal.xcodeproj */;
+				},
+				{
+					ProductGroup = A036EDB62EC39D6C0079C963 /* Products */;
+					ProjectRef = A036ED022EC39D6C0079C963 /* example_apple_opengl2.xcodeproj */;
+				},
+			);
+			projectRoot = "";
+			targets = (
+				A084664C2EA92DDB004C7FC7 /* SymulacjaFinansowaPolski */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A08466492EA92DDB004C7FC7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A08466522EA92DDB004C7FC7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_MODULE_DEBUGGING = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				FRAMEWORK_SEARCH_PATHS = "";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"/Users/Emilia/opengl/include/**",
+					"~/OpenGL/include/**",
+					"/opt/homebrew/opt/gdal/include/**",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"/Users/Emilia/opengl/lib/**",
+					"/opt/homebrew/lib/**",
+					"/opt/homebrew/opt/gdal/lib/**",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.3;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = (
+					"-lgdal",
+					"-lglfw",
+					"\"-framework OpenGL\"",
+				);
+				SDKROOT = macosx;
+				SYSTEM_HEADER_SEARCH_PATHS = "";
+			};
+			name = Debug;
+		};
+		A08466532EA92DDB004C7FC7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_MODULE_DEBUGGING = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				FRAMEWORK_SEARCH_PATHS = "";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"/Users/Emilia/opengl/include/**",
+					"~/OpenGL/include/**",
+					"/opt/homebrew/opt/gdal/include/**",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"/Users/Emilia/opengl/lib/**",
+					"/opt/homebrew/lib/**",
+					"/opt/homebrew/opt/gdal/lib/**",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.3;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = (
+					"-lgdal",
+					"-lglfw",
+					"\"-framework OpenGL\"",
+				);
+				SDKROOT = macosx;
+				SYSTEM_HEADER_SEARCH_PATHS = "";
+			};
+			name = Release;
+		};
+		A08466552EA92DDB004C7FC7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					"/Users/Emilia/OpenGL/include/**",
+					"/opt/homebrew/Cellar/gdal/3.11.4_1/include/**",
+					"~/OpenGL/include/**",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"/Users/Emilia/opengl/lib/**",
+					"/opt/homebrew/lib/**",
+					"$(PROJECT_DIR)/SymulacjaFinansowaPolski/imgui/examples/libs/glfw/lib-vc2010-64",
+					"$(PROJECT_DIR)/SymulacjaFinansowaPolski/imgui/examples/libs/glfw/lib-vc2010-32",
+					"$(PROJECT_DIR)/SymulacjaFinansowaPolski/libs/imgui/examples/libs/glfw/lib-vc2010-64",
+					"$(PROJECT_DIR)/SymulacjaFinansowaPolski/libs/imgui/examples/libs/glfw/lib-vc2010-32",
+					"$(PROJECT_DIR)/SymulacjaFinansowaPolski/libs\\ 2/imgui/examples/libs/glfw/lib-vc2010-32",
+					"$(PROJECT_DIR)/SymulacjaFinansowaPolski/libs\\ 2/imgui/examples/libs/glfw/lib-vc2010-64",
+				);
+				OTHER_LDFLAGS = (
+					"\"-L/opt/homebrew/lib -lglfw\"",
+					"\"-L/opt/homebrew/lib -lgdal\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		A08466562EA92DDB004C7FC7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					"/Users/Emilia/OpenGL/include/**",
+					"/opt/homebrew/Cellar/gdal/3.11.4_1/include/**",
+					"~/OpenGL/include/**",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"/Users/Emilia/opengl/lib/**",
+					"/opt/homebrew/lib/**",
+					"$(PROJECT_DIR)/SymulacjaFinansowaPolski/imgui/examples/libs/glfw/lib-vc2010-64",
+					"$(PROJECT_DIR)/SymulacjaFinansowaPolski/imgui/examples/libs/glfw/lib-vc2010-32",
+					"$(PROJECT_DIR)/SymulacjaFinansowaPolski/libs/imgui/examples/libs/glfw/lib-vc2010-64",
+					"$(PROJECT_DIR)/SymulacjaFinansowaPolski/libs/imgui/examples/libs/glfw/lib-vc2010-32",
+					"$(PROJECT_DIR)/SymulacjaFinansowaPolski/libs\\ 2/imgui/examples/libs/glfw/lib-vc2010-32",
+					"$(PROJECT_DIR)/SymulacjaFinansowaPolski/libs\\ 2/imgui/examples/libs/glfw/lib-vc2010-64",
+				);
+				OTHER_LDFLAGS = (
+					"\"-L/opt/homebrew/lib -lglfw\"",
+					"\"-L/opt/homebrew/lib -lgdal\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A08466482EA92DDB004C7FC7 /* Build configuration list for PBXProject "SymulacjaFinansowaPolski" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A08466522EA92DDB004C7FC7 /* Debug */,
+				A08466532EA92DDB004C7FC7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A08466542EA92DDB004C7FC7 /* Build configuration list for PBXNativeTarget "SymulacjaFinansowaPolski" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A08466552EA92DDB004C7FC7 /* Debug */,
+				A08466562EA92DDB004C7FC7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A08466452EA92DDB004C7FC7 /* Project object */;
+}

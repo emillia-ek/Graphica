@@ -39,3 +39,36 @@
 
 # debug information files
 *.dwo
+SymulacjaFinansowaPolski/.DS_Store
+SymulacjaFinansowaPolski/include/.DS_Store
+SymulacjaFinansowaPolski/SymulacjaFinansowaPolski.xcodeproj/project.xcworkspace/xcuserdata/Emilia.xcuserdatad/UserInterfaceState.xcuserstate
+SymulacjaFinansowaPolski/SymulacjaFinansowaPolski/.DS_Store
+
+# Xcode
+.DS_Store
+build/
+DerivedData/
+*.xcworkspace
+*.xcuserstate
+*.xcuserdatad
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcuserdata/
+
+# C++ / general
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.exe
+
+# macOS
+*.DS_Store
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.swp
+
