@@ -2,742 +2,1506 @@
 #include <cmath>
 #include <vector>
 #include <string>
-#include <algorithm>
-#include <iomanip>
 #include <sstream>
+#include <cctype>
+#include <algorithm>
+#include <regex>
+#include <map>
+#include <memory>
 
-// OpenGL i GLFW headers
+using namespace std;
+
+// OpenGL and GLFW headers
 #include <GLFW/glfw3.h>
 #include "imconfig.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+// Forward declarations
+GLFWwindow* window;
 
-// --- Deklaracje struktur i wyliczeń ---
-
-enum class FunctionType {
-    Linear,
-    Quadratic,
-    Sinus,
-    Exponential,
-    Logarithmic,
-    SquareRoot
-};
-
-struct FunctionParams {
-    float p1 = 1.0f;
-    float p2 = 1.0f;
-    float p3 = 0.0f;
-    ImVec4 color = ImVec4(1.0f, 0.5f, 0.2f, 1.0f);
-    FunctionType type = FunctionType::Linear;
-    std::string label = "y = x";
-    bool isVisible = true;
-    
-    // Metoda do generowania równania na podstawie parametrów
-    std::string generateEquation() const {
-        std::stringstream ss;
-        ss << "y = ";
-        
-        switch (type) {
-            case FunctionType::Linear:
-                if (p1 != 0) {
-                    if (p1 == 1.0f) ss << "x";
-                    else if (p1 == -1.0f) ss << "-x";
-                    else ss << std::fixed << std::setprecision(2) << p1 << "x";
-                    
-                    if (p3 > 0) ss << " + " << std::fixed << std::setprecision(2) << p3;
-                    else if (p3 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p3);
-                } else {
-                    ss << std::fixed << std::setprecision(2) << p3;
-                }
-                break;
-                
-            case FunctionType::Quadratic:
-                if (p1 != 0) {
-                    if (p1 == 1.0f) ss << "x²";
-                    else if (p1 == -1.0f) ss << "-x²";
-                    else ss << std::fixed << std::setprecision(2) << p1 << "x²";
-                    
-                    if (p2 > 0) ss << " + " << std::fixed << std::setprecision(2) << p2 << "x";
-                    else if (p2 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p2) << "x";
-                    
-                    if (p3 > 0) ss << " + " << std::fixed << std::setprecision(2) << p3;
-                    else if (p3 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p3);
-                } else if (p2 != 0) {
-                    if (p2 == 1.0f) ss << "x";
-                    else if (p2 == -1.0f) ss << "-x";
-                    else ss << std::fixed << std::setprecision(2) << p2 << "x";
-                    
-                    if (p3 > 0) ss << " + " << std::fixed << std::setprecision(2) << p3;
-                    else if (p3 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p3);
-                } else {
-                    ss << std::fixed << std::setprecision(2) << p3;
-                }
-                break;
-                
-            case FunctionType::Sinus:
-                if (p1 != 1.0f) {
-                    if (p1 == -1.0f) ss << "-";
-                    else ss << std::fixed << std::setprecision(2) << p1;
-                }
-                ss << "sin(";
-                if (p2 != 1.0f) ss << std::fixed << std::setprecision(2) << p2 << "x";
-                else ss << "x";
-                
-                if (p3 > 0) ss << " + " << std::fixed << std::setprecision(2) << p3;
-                else if (p3 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p3);
-                ss << ")";
-                break;
-                
-            case FunctionType::Exponential:
-                if (p1 != 1.0f) {
-                    if (p1 == -1.0f) ss << "-";
-                    else ss << std::fixed << std::setprecision(2) << p1;
-                }
-                ss << "exp(";
-                if (p2 != 1.0f) ss << std::fixed << std::setprecision(2) << p2 << "x";
-                else ss << "x";
-                ss << ")";
-                break;
-                
-            case FunctionType::Logarithmic:
-                if (p1 != 1.0f) {
-                    if (p1 == -1.0f) ss << "-";
-                    else ss << std::fixed << std::setprecision(2) << p1;
-                }
-                ss << "ln(";
-                if (p2 != 1.0f) ss << std::fixed << std::setprecision(2) << p2 << "x";
-                else ss << "x";
-                
-                if (p3 > 0) ss << " + " << std::fixed << std::setprecision(2) << p3;
-                else if (p3 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p3);
-                ss << ")";
-                break;
-                
-            case FunctionType::SquareRoot:
-                if (p1 != 1.0f) {
-                    if (p1 == -1.0f) ss << "-";
-                    else ss << std::fixed << std::setprecision(2) << p1;
-                }
-                ss << "√(";
-                if (p2 != 1.0f) ss << std::fixed << std::setprecision(2) << p2 << "x";
-                else ss << "x";
-                
-                if (p3 > 0) ss << " + " << std::fixed << std::setprecision(2) << p3;
-                else if (p3 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p3);
-                ss << ")";
-                break;
-        }
-        
-        return ss.str();
-    }
-};
-
+// Structure for storing points on the graph
 struct Point {
     float x, y;
     Point(float x, float y) : x(x), y(y) {}
 };
 
-// --- Klasa zarządzająca wykresem ---
+// Structure for storing a function with its properties
+struct FunctionData {
+    string expression;
+    vector<Point> points;
+    ImVec4 color;
+    bool enabled;
+    bool editing;
+    string editBuffer;
 
-class PlotGenerator {
+    FunctionData(const string& expr, const ImVec4& col)
+        : expression(expr), color(col), enabled(true), editing(false), editBuffer(expr) {}
+
+    void startEditing() {
+        editing = true;
+        editBuffer = expression;
+    }
+
+    void applyEdit() {
+        if (!editBuffer.empty()) {
+            expression = editBuffer;
+        }
+        editing = false;
+    }
+
+    void cancelEdit() {
+        editing = false;
+    }
+};
+
+// Enum for function types
+enum FunctionType {
+    LINEAR,
+    QUADRATIC,
+    SIN,
+    COS,
+    TAN,
+    COT,
+    EXPONENTIAL,
+    LOGARITHMIC,
+    POLYNOMIAL,
+    POWER,
+    ABSOLUTE,
+    VERTICAL_LINE,
+    HORIZONTAL_LINE,
+    CIRCLE,
+    CONSTANT_POWER,
+    UNKNOWN
+};
+
+// Class for parsing and evaluating mathematical expressions
+class MathExpressionParser {
 private:
-    float xMin, xMax;
-    int resolution = 500;
+    string expression;
+    FunctionType type;
+    vector<float> coefficients;
+    float verticalLineX;
+    float horizontalLineY;
+
+    // Circle parameters
+    float circleCenterX, circleCenterY, circleRadius;
+    bool isCircle;
+
+    // Polynomial coefficients storage
+    vector<pair<float, float>> polynomialTerms; // pair<coefficient, exponent>
+
+    // Helper function to remove whitespace
+    string removeWhitespace(const string& str) {
+        string result;
+        remove_copy_if(str.begin(), str.end(), std::back_inserter(result),
+                      [](char c) { return isspace(c); });
+        return result;
+    }
+
+    // Helper function to convert to lowercase
+    string toLower(const string& str) {
+        string result = str;
+        transform(result.begin(), result.end(), result.begin(),
+                 [](unsigned char c) { return tolower(c); });
+        return result;
+    }
+
+    // Check if string contains a substring
+    bool contains(const string& str, const string& substr) {
+        return str.find(substr) != string::npos;
+    }
+
+    // Replace all occurrences of a substring
+    void replaceAll(string& str, const string& from, const string& to) {
+        size_t start_pos = 0;
+        while((start_pos = str.find(from, start_pos)) != string::npos) {
+            str.replace(start_pos, from.length(), to);
+            start_pos += to.length();
+        }
+    }
+
+    // Normalize function expression
+    void normalizeExpression(string& expr) {
+        // Store original for special cases
+        string original = expr;
+
+        // Check for circle equation - FIXED: Better detection
+        if ((contains(expr, "(x") && contains(expr, ")^2") &&
+             contains(expr, "(y") && contains(expr, ")^2") &&
+             contains(expr, "=")) ||
+            (contains(expr, "x^2") && contains(expr, "y^2") && contains(expr, "="))) {
+            parseCircleEquation(original);
+            return;
+        }
+
+        // Replace f(x) with y=
+        if (expr.find("f(x)=") == 0) {
+            expr = "y=" + expr.substr(5);
+        } else if (expr.find("f(x)") == 0 && expr.length() > 4) {
+            expr = "y=" + expr.substr(4);
+        }
+
+        // Handle horizontal lines y = constant
+        if (expr.find("y=") == 0) {
+            // Check if it's just y=constant (no x)
+            string afterEqual = expr.substr(2);
+            if (!contains(afterEqual, "x") &&
+                !contains(afterEqual, "sin") &&
+                !contains(afterEqual, "cos") &&
+                !contains(afterEqual, "tan") &&
+                !contains(afterEqual, "cot") &&
+                !contains(afterEqual, "log") &&
+                !contains(afterEqual, "ln") &&
+                !contains(afterEqual, "exp") &&
+                !contains(afterEqual, "e^") &&
+                !contains(afterEqual, "abs")) {
+                try {
+                    horizontalLineY = stof(afterEqual);
+                    type = HORIZONTAL_LINE;
+                    expr = "horizontal";
+                    return;
+                } catch (...) {
+                    // Not a simple constant, continue parsing
+                }
+            }
+        }
+
+        // Handle vertical lines x = constant
+        if (expr.find("x=") == 0) {
+            // Parse the x value
+            size_t eqPos = expr.find('=');
+            if (eqPos != string::npos) {
+                try {
+                    verticalLineX = stof(expr.substr(eqPos + 1));
+                    type = VERTICAL_LINE;
+                    expr = "vertical";
+                    return;
+                } catch (...) {
+                    verticalLineX = 0.0f;
+                }
+            }
+        }
+
+        // Replace tg with tan and ctg with cot
+        replaceAll(expr, "tg", "tan");
+        replaceAll(expr, "ctg", "cot");
+
+        // Handle absolute value - FIXED: Proper handling for transformations
+        // First, replace all |...| with abs(...) but handle transformations inside
+        size_t pipePos = 0;
+        while ((pipePos = expr.find('|', pipePos)) != string::npos) {
+            size_t nextPipe = expr.find('|', pipePos + 1);
+            if (nextPipe != string::npos) {
+                string inside = expr.substr(pipePos + 1, nextPipe - pipePos - 1);
+                expr = expr.substr(0, pipePos) + "abs(" + inside + ")" + expr.substr(nextPipe + 1);
+                pipePos += 4 + inside.length(); // Skip past "abs(inside)"
+            } else {
+                break; // Unmatched pipe
+            }
+        }
+
+        // Remove y= if present (but not for special cases)
+        if (expr.find("y=") == 0 && type != VERTICAL_LINE && type != HORIZONTAL_LINE) {
+            expr = expr.substr(2);
+        }
+    }
+
+    // Parse circle equation: (x-a)^2 + (y-b)^2 = r^2 - FIXED
+    void parseCircleEquation(const string& expr) {
+        isCircle = true;
+        type = CIRCLE;
+
+        // Default values
+        circleCenterX = 0.0f;
+        circleCenterY = 0.0f;
+        circleRadius = 1.0f;
+
+        try {
+            // Remove spaces
+            string cleanExpr = removeWhitespace(toLower(expr));
+
+            // Find the equals sign
+            size_t eqPos = cleanExpr.find('=');
+            if (eqPos == string::npos) return;
+
+            // Get right side (radius squared)
+            string rightSide = cleanExpr.substr(eqPos + 1);
+            float radiusSquared = stof(rightSide);
+            circleRadius = sqrt(radiusSquared);
+
+            // Get left side
+            string leftSide = cleanExpr.substr(0, eqPos);
+
+            // Extract x part - FIXED: Better parsing
+            size_t xStart = leftSide.find("(x");
+            if (xStart != string::npos) {
+                size_t xEnd = leftSide.find(")^2", xStart);
+                if (xEnd != string::npos) {
+                    string xExpr = leftSide.substr(xStart + 1, xEnd - xStart - 1);
+                    // xExpr should be like "x-2" or "x+2" or "x"
+                    if (xExpr.length() > 1) {
+                        // Has transformation
+                        char op = xExpr[1]; // Should be + or -
+                        float value = stof(xExpr.substr(2));
+                        if (op == '-') {
+                            circleCenterX = value; // (x-a)^2 means center at a
+                        } else if (op == '+') {
+                            circleCenterX = -value; // (x+a)^2 means center at -a
+                        }
+                    } else {
+                        circleCenterX = 0.0f; // Just (x)^2
+                    }
+                }
+            } else if (contains(leftSide, "x^2")) {
+                // x^2 without parentheses, center at 0
+                circleCenterX = 0.0f;
+            }
+
+            // Extract y part - FIXED: Better parsing
+            size_t yStart = leftSide.find("(y");
+            if (yStart != string::npos) {
+                size_t yEnd = leftSide.find(")^2", yStart);
+                if (yEnd != string::npos) {
+                    string yExpr = leftSide.substr(yStart + 1, yEnd - yStart - 1);
+                    // yExpr should be like "y-2" or "y+2" or "y"
+                    if (yExpr.length() > 1) {
+                        // Has transformation
+                        char op = yExpr[1]; // Should be + or -
+                        float value = stof(yExpr.substr(2));
+                        if (op == '-') {
+                            circleCenterY = value; // (y-b)^2 means center at b
+                        } else if (op == '+') {
+                            circleCenterY = -value; // (y+b)^2 means center at -b
+                        }
+                    } else {
+                        circleCenterY = 0.0f; // Just (y)^2
+                    }
+                }
+            } else if (contains(leftSide, "y^2")) {
+                // y^2 without parentheses, center at 0
+                circleCenterY = 0.0f;
+            }
+
+        } catch (...) {
+            // Use defaults if parsing fails
+            circleCenterX = 0.0f;
+            circleCenterY = 0.0f;
+            circleRadius = 1.0f;
+        }
+    }
+
+    // Parse polynomial terms - NEW FUNCTION
+    void parsePolynomial(const string& expr) {
+        polynomialTerms.clear();
+
+        // Simple polynomial parser for terms like ax^n
+        string cleanExpr = expr;
+
+        // Handle addition/subtraction
+        vector<string> terms;
+        string currentTerm;
+        int parenCount = 0;
+
+        for (char c : cleanExpr) {
+            if (c == '(') parenCount++;
+            else if (c == ')') parenCount--;
+
+            if (parenCount == 0 && (c == '+' || c == '-') && !currentTerm.empty()) {
+                terms.push_back(currentTerm);
+                currentTerm = c;
+            } else {
+                currentTerm += c;
+            }
+        }
+        if (!currentTerm.empty()) {
+            terms.push_back(currentTerm);
+        }
+
+        // Parse each term
+        for (string& term : terms) {
+            // Remove leading + if present
+            if (term[0] == '+') term = term.substr(1);
+
+            // Check if term contains x
+            if (contains(term, "x")) {
+                size_t xPos = term.find('x');
+                float coefficient = 1.0f;
+                float exponent = 1.0f;
+
+                // Parse coefficient
+                string coeffStr = term.substr(0, xPos);
+                if (coeffStr.empty() || coeffStr == "+") {
+                    coefficient = 1.0f;
+                } else if (coeffStr == "-") {
+                    coefficient = -1.0f;
+                } else {
+                    try {
+                        coefficient = stof(coeffStr);
+                    } catch (...) {
+                        coefficient = 1.0f;
+                    }
+                }
+
+                // Parse exponent
+                if (xPos + 1 < term.length() && term[xPos + 1] == '^') {
+                    size_t expStart = xPos + 2;
+                    string expStr = term.substr(expStart);
+                    try {
+                        exponent = stof(expStr);
+                    } catch (...) {
+                        exponent = 1.0f;
+                    }
+                }
+
+                polynomialTerms.emplace_back(coefficient, exponent);
+            } else {
+                // Constant term
+                try {
+                    float constant = stof(term);
+                    polynomialTerms.emplace_back(constant, 0.0f);
+                } catch (...) {
+                    // Ignore invalid terms
+                }
+            }
+        }
+
+        type = POLYNOMIAL;
+    }
+
+    // Parse expression with proper operator precedence
+    float parseExpression(float x, const string& expr) {
+        if (expr.empty()) return 0.0f;
+
+        // Remove outer parentheses
+        string trimmed = expr;
+        while (trimmed.front() == '(' && trimmed.back() == ')') {
+            trimmed = trimmed.substr(1, trimmed.length() - 2);
+        }
+
+        // Check for addition/subtraction (lowest precedence)
+        int parenCount = 0;
+        size_t opPos = string::npos;
+        char op = '+';
+
+        for (size_t i = 0; i < trimmed.length(); i++) {
+            char c = trimmed[i];
+            if (c == '(') parenCount++;
+            else if (c == ')') parenCount--;
+            else if (parenCount == 0 && (c == '+' || c == '-') && i > 0) {
+                // Check if this is not part of a number or exponent
+                if (i > 0) {
+                    char prev = trimmed[i-1];
+                    if (prev != 'e' && prev != 'E' && !(i > 1 && (trimmed[i-2] == 'e' || trimmed[i-2] == 'E'))) {
+                        opPos = i;
+                        op = c;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (opPos != string::npos) {
+            string left = trimmed.substr(0, opPos);
+            string right = trimmed.substr(opPos + 1);
+
+            float leftVal = parseExpression(x, left);
+            float rightVal = parseExpression(x, right);
+
+            return (op == '+') ? leftVal + rightVal : leftVal - rightVal;
+        }
+
+        // Check for multiplication
+        parenCount = 0;
+        opPos = string::npos;
+
+        for (size_t i = 0; i < trimmed.length(); i++) {
+            char c = trimmed[i];
+            if (c == '(') parenCount++;
+            else if (c == ')') parenCount--;
+            else if (parenCount == 0 && c == '*' && i > 0) {
+                opPos = i;
+                break;
+            }
+        }
+
+        if (opPos != string::npos) {
+            string left = trimmed.substr(0, opPos);
+            string right = trimmed.substr(opPos + 1);
+
+            float leftVal = parseExpression(x, left);
+            float rightVal = parseExpression(x, right);
+
+            return leftVal * rightVal;
+        }
+
+        // Check for implied multiplication
+        for (size_t i = 0; i < trimmed.length() - 1; i++) {
+            if ((isdigit(trimmed[i]) || trimmed[i] == ')' || trimmed[i] == 'x') &&
+                (trimmed[i+1] == '(' || trimmed[i+1] == 'x' ||
+                 trimmed[i+1] == 's' || trimmed[i+1] == 'c' ||
+                 trimmed[i+1] == 't' || trimmed[i+1] == 'l' ||
+                 trimmed[i+1] == 'e' || trimmed[i+1] == 'a')) {
+                string left = trimmed.substr(0, i+1);
+                string right = trimmed.substr(i+1);
+                return parseExpression(x, left) * parseExpression(x, right);
+            }
+        }
+
+        // Check for division
+        parenCount = 0;
+        opPos = string::npos;
+
+        for (size_t i = 0; i < trimmed.length(); i++) {
+            char c = trimmed[i];
+            if (c == '(') parenCount++;
+            else if (c == ')') parenCount--;
+            else if (parenCount == 0 && c == '/' && i > 0) {
+                opPos = i;
+                break;
+            }
+        }
+
+        if (opPos != string::npos) {
+            string left = trimmed.substr(0, opPos);
+            string right = trimmed.substr(opPos + 1);
+
+            float leftVal = parseExpression(x, left);
+            float rightVal = parseExpression(x, right);
+
+            if (fabs(rightVal) < 0.0001f) return NAN;
+            return leftVal / rightVal;
+        }
+
+        // Check for power (right associative)
+        int maxPos = -1;
+        parenCount = 0;
+        for (size_t i = 0; i < trimmed.length(); i++) {
+            char c = trimmed[i];
+            if (c == '(') parenCount++;
+            else if (c == ')') parenCount--;
+            else if (parenCount == 0 && c == '^') {
+                maxPos = i;
+            }
+        }
+
+        if (maxPos != -1) {
+            string left = trimmed.substr(0, maxPos);
+            string right = trimmed.substr(maxPos + 1);
+
+            float base = parseExpression(x, left);
+            float exponent = parseExpression(x, right);
+
+            if (base < 0 && fabs(exponent - floor(exponent)) > 0.0001f) {
+                return NAN;
+            }
+
+            return pow(base, exponent);
+        }
+
+        // Check for functions
+        if (contains(trimmed, "sin(")) {
+            size_t start = trimmed.find("sin(") + 4;
+            size_t end = findMatchingParen(trimmed, start - 1);
+            string arg = trimmed.substr(start, end - start);
+            return sin(parseExpression(x, arg));
+        }
+        if (contains(trimmed, "cos(")) {
+            size_t start = trimmed.find("cos(") + 4;
+            size_t end = findMatchingParen(trimmed, start - 1);
+            string arg = trimmed.substr(start, end - start);
+            return cos(parseExpression(x, arg));
+        }
+        if (contains(trimmed, "tan(")) {
+            size_t start = trimmed.find("tan(") + 4;
+            size_t end = findMatchingParen(trimmed, start - 1);
+            string arg = trimmed.substr(start, end - start);
+            float val = parseExpression(x, arg);
+            float result = tan(val);
+            if (fabs(cos(val)) < 0.001f) return NAN;
+            return result;
+        }
+        if (contains(trimmed, "cot(")) {
+            size_t start = trimmed.find("cot(") + 4;
+            size_t end = findMatchingParen(trimmed, start - 1);
+            string arg = trimmed.substr(start, end - start);
+            float val = parseExpression(x, arg);
+            if (fabs(sin(val)) < 0.001f) return NAN;
+            return cos(val) / sin(val);
+        }
+        if (contains(trimmed, "exp(")) {
+            size_t start = trimmed.find("exp(") + 4;
+            size_t end = findMatchingParen(trimmed, start - 1);
+            string arg = trimmed.substr(start, end - start);
+            return exp(parseExpression(x, arg));
+        }
+        if (contains(trimmed, "ln(")) {
+            size_t start = trimmed.find("ln(") + 3;
+            size_t end = findMatchingParen(trimmed, start - 1);
+            string arg = trimmed.substr(start, end - start);
+            float val = parseExpression(x, arg);
+            if (val <= 0) return NAN;
+            return log(val);
+        }
+        if (contains(trimmed, "log(")) {
+            size_t start = trimmed.find("log(") + 4;
+            size_t end = findMatchingParen(trimmed, start - 1);
+            string arg = trimmed.substr(start, end - start);
+            float val = parseExpression(x, arg);
+            if (val <= 0) return NAN;
+            return log10(val);
+        }
+        if (contains(trimmed, "abs(")) {
+            size_t start = trimmed.find("abs(") + 4;
+            size_t end = findMatchingParen(trimmed, start - 1);
+            string arg = trimmed.substr(start, end - start);
+            return fabs(parseExpression(x, arg));
+        }
+
+        // Check for e^x
+        if (trimmed.find("e^") == 0) {
+            string exponent = trimmed.substr(2);
+            float expVal = parseExpression(x, exponent);
+            return exp(expVal);
+        }
+
+        // Check for x
+        if (trimmed == "x") return x;
+        if (trimmed == "-x") return -x;
+
+        // Check for numbers
+        try {
+            return stof(trimmed);
+        } catch (...) {
+            return 0.0f;
+        }
+    }
+
+    // Find matching parenthesis
+    size_t findMatchingParen(const string& str, size_t start) {
+        int count = 1;
+        for (size_t i = start + 1; i < str.length(); i++) {
+            if (str[i] == '(') count++;
+            else if (str[i] == ')') {
+                count--;
+                if (count == 0) return i;
+            }
+        }
+        return str.length();
+    }
 
 public:
-    PlotGenerator() : xMin(-10.0f), xMax(10.0f) {}
+    MathExpressionParser() : type(UNKNOWN), verticalLineX(0.0f), horizontalLineY(0.0f),
+                             circleCenterX(0.0f), circleCenterY(0.0f), circleRadius(1.0f),
+                             isCircle(false) {}
+
+    void setExpression(const string& expr) {
+        verticalLineX = 0.0f;
+        horizontalLineY = 0.0f;
+        isCircle = false;
+        polynomialTerms.clear();
+
+        string processed = expr;
+        normalizeExpression(processed);
+        expression = removeWhitespace(toLower(processed));
+
+        if (type != VERTICAL_LINE && type != HORIZONTAL_LINE && type != CIRCLE) {
+            detectFunctionType();
+        }
+    }
+
+    void detectFunctionType() {
+        string expr = expression;
+
+        // Check for circle
+        if (isCircle) {
+            type = CIRCLE;
+            return;
+        }
+
+        // Check for constant power like 1^x
+        if (contains(expr, "1^x") || expr == "1^x") {
+            type = CONSTANT_POWER;
+            return;
+        }
+
+        // Check for power expressions with x in exponent (like 2^x)
+        if (contains(expr, "^x")) {
+            type = POWER;
+            return;
+        }
+
+        // Check for absolute value
+        if (contains(expr, "abs(")) {
+            type = ABSOLUTE;
+            return;
+        }
+
+        // Check for trigonometric functions
+        if (contains(expr, "sin(")) {
+            type = SIN;
+            return;
+        }
+        if (contains(expr, "cos(")) {
+            type = COS;
+            return;
+        }
+        if (contains(expr, "tan(")) {
+            type = TAN;
+            return;
+        }
+        if (contains(expr, "cot(")) {
+            type = COT;
+            return;
+        }
+
+        // Check for exponential (e^x)
+        if (expr.find("e^") == 0 || contains(expr, "exp(")) {
+            type = EXPONENTIAL;
+            return;
+        }
+
+        // Check for logarithmic
+        if (contains(expr, "log") || contains(expr, "ln(")) {
+            type = LOGARITHMIC;
+            return;
+        }
+
+        // Check for quadratic (x^2)
+        if (contains(expr, "x^2") && !contains(expr, "x^3") && !contains(expr, "x^4")) {
+            type = QUADRATIC;
+            return;
+        }
+
+        // Check for linear (contains x but not x^2, x^3, etc.)
+        if (contains(expr, "x") && !contains(expr, "x^") && !contains(expr, "sin") &&
+            !contains(expr, "cos") && !contains(expr, "tan") && !contains(expr, "cot") &&
+            !contains(expr, "log") && !contains(expr, "ln") && !contains(expr, "exp") &&
+            !contains(expr, "abs")) {
+            type = LINEAR;
+            return;
+        }
+
+        // Check for polynomial (contains x^3, x^4, etc.)
+        if (contains(expr, "x^")) {
+            parsePolynomial(expr);
+            return;
+        }
+
+        // Default
+        type = UNKNOWN;
+    }
+
+    float evaluate(float x) {
+        // Handle special cases
+        if (type == VERTICAL_LINE) {
+            return NAN;
+        }
+        if (type == HORIZONTAL_LINE) {
+            return horizontalLineY;
+        }
+        if (type == CIRCLE) {
+            return NAN;
+        }
+
+        string expr = expression;
+
+        try {
+            // Handle constant power first (y=1^x)
+            if (type == CONSTANT_POWER) {
+                return 1.0f;
+            }
+
+            // Use general expression parser
+            return parseExpression(x, expr);
+
+        } catch (const exception& e) {
+            return NAN;
+        }
+    }
+
+    FunctionType getType() const { return type; }
+    string getExpression() const { return expression; }
+
+    // Get special line values
+    float getVerticalLineX() const { return verticalLineX; }
+    float getHorizontalLineY() const { return horizontalLineY; }
+
+    // Get circle parameters
+    bool isCircleEquation() const { return isCircle; }
+    void getCircleParams(float& cx, float& cy, float& r) const {
+        cx = circleCenterX;
+        cy = circleCenterY;
+        r = circleRadius;
+    }
+};
+
+// Class managing multiple functions
+class MultiFunctionPlotter {
+private:
+    vector<FunctionData> functions;
+    float xMin, xMax;
+    int resolution;
+
+    // Color palette
+    vector<ImVec4> colorPalette = {
+        ImVec4(0.0f, 0.8f, 1.0f, 1.0f),  // Cyan
+        ImVec4(1.0f, 0.3f, 0.3f, 1.0f),  // Red
+        ImVec4(0.3f, 1.0f, 0.3f, 1.0f),  // Green
+        ImVec4(1.0f, 0.8f, 0.0f, 1.0f),  // Yellow
+        ImVec4(0.8f, 0.3f, 1.0f, 1.0f),  // Purple
+        ImVec4(0.0f, 1.0f, 0.8f, 1.0f),  // Teal
+        ImVec4(1.0f, 0.5f, 0.0f, 1.0f),  // Orange
+        ImVec4(0.5f, 0.5f, 1.0f, 1.0f)   // Blue
+    };
+
+    int nextColorIndex = 0;
+
+public:
+    MultiFunctionPlotter() : xMin(-10.0f), xMax(10.0f), resolution(800) {}
+
+    void addFunction(const string& equation) {
+        ImVec4 color = colorPalette[nextColorIndex % colorPalette.size()];
+        functions.emplace_back(equation, color);
+        nextColorIndex++;
+        updateFunction(functions.size() - 1);
+    }
+
+    void editFunction(int index, const string& newEquation) {
+        if (index >= 0 && index < functions.size()) {
+            functions[index].expression = newEquation;
+            updateFunction(index);
+        }
+    }
+
+    void removeFunction(int index) {
+        if (index >= 0 && index < functions.size()) {
+            functions.erase(functions.begin() + index);
+        }
+    }
+
+    void updateFunction(int index) {
+        if (index < 0 || index >= functions.size()) return;
+
+        auto& func = functions[index];
+        func.points.clear();
+
+        MathExpressionParser parser;
+        parser.setExpression(func.expression);
+
+        // Handle vertical lines
+        if (parser.getType() == VERTICAL_LINE) {
+            float xValue = parser.getVerticalLineX();
+            if (!isnan(xValue)) {
+                // Create vertical line points
+                for (float y = -100.0f; y <= 100.0f; y += 0.1f) {
+                    func.points.emplace_back(xValue, y);
+                }
+            }
+            return;
+        }
+
+        // Handle horizontal lines
+        if (parser.getType() == HORIZONTAL_LINE) {
+            float yValue = parser.getHorizontalLineY();
+            if (!isnan(yValue)) {
+                // Create horizontal line points
+                for (float x = xMin; x <= xMax; x += 0.1f) {
+                    func.points.emplace_back(x, yValue);
+                }
+            }
+            return;
+        }
+
+        // Handle circles - FIXED
+        if (parser.isCircleEquation()) {
+            float cx, cy, r;
+            parser.getCircleParams(cx, cy, r);
+
+            // Generate points for circle
+            int circlePoints = 200;
+            for (int i = 0; i <= circlePoints; i++) {
+                float angle = 2.0f * M_PI * i / circlePoints;
+                float x = cx + r * cos(angle);
+                float y = cy + r * sin(angle);
+                func.points.emplace_back(x, y);
+            }
+            return;
+        }
+
+        // Regular function
+        float step = (xMax - xMin) / resolution;
+        vector<Point> segmentPoints;
+
+        for (int i = 0; i <= resolution; ++i) {
+            float x = xMin + i * step;
+            float y = parser.evaluate(x);
+
+            if (!isnan(y) && !isinf(y)) {
+                segmentPoints.emplace_back(x, y);
+            } else {
+                // NaN or inf - end current segment
+                if (!segmentPoints.empty()) {
+                    func.points.insert(func.points.end(), segmentPoints.begin(), segmentPoints.end());
+                    segmentPoints.clear();
+                }
+            }
+        }
+
+        // Add any remaining points
+        if (!segmentPoints.empty()) {
+            func.points.insert(func.points.end(), segmentPoints.begin(), segmentPoints.end());
+        }
+    }
+
+    void updateAllFunctions() {
+        for (size_t i = 0; i < functions.size(); i++) {
+            updateFunction(i);
+        }
+    }
+
+    void draw() {
+        // Draw regular functions first
+        for (size_t i = 0; i < functions.size(); i++) {
+            auto& func = functions[i];
+            if (!func.enabled || func.points.empty()) continue;
+
+            // Get parser to check function type
+            MathExpressionParser parser;
+            parser.setExpression(func.expression);
+
+            // Draw function as line segments to handle discontinuities
+            glColor3f(func.color.x, func.color.y, func.color.z);
+
+            // For circles, use line loop
+            if (parser.isCircleEquation()) {
+                glBegin(GL_LINE_LOOP);
+                for (const auto& point : func.points) {
+                    glVertex2f(point.x, point.y);
+                }
+                glEnd();
+            } else {
+                // Draw as line strip for continuous functions
+                if (func.points.size() > 1) {
+                    glBegin(GL_LINE_STRIP);
+                    for (const auto& point : func.points) {
+                        glVertex2f(point.x, point.y);
+                    }
+                    glEnd();
+                }
+            }
+        }
+    }
+
+    void clear() {
+        functions.clear();
+        nextColorIndex = 0;
+    }
 
     void setRange(float min, float max) {
         xMin = min;
         xMax = max;
+        updateAllFunctions();
     }
 
-    float calculateY(FunctionType type, float x, const FunctionParams& params) {
-        switch (type) {
-            case FunctionType::Linear:
-                return params.p1 * x + params.p3;
-            case FunctionType::Quadratic:
-                return params.p1 * x * x + params.p2 * x + params.p3;
-            case FunctionType::Sinus:
-                return params.p1 * std::sin(params.p2 * x + params.p3);
-            case FunctionType::Exponential:
-                return params.p1 * std::exp(params.p2 * x);
-            case FunctionType::Logarithmic:
-                if (params.p2 * x + params.p3 > 0)
-                    return params.p1 * std::log(params.p2 * x + params.p3);
-                return NAN;
-            case FunctionType::SquareRoot:
-                if (params.p2 * x + params.p3 >= 0)
-                    return params.p1 * std::sqrt(params.p2 * x + params.p3);
-                return NAN;
-        }
-        return 0.0f;
-    }
+    vector<FunctionData>& getFunctions() { return functions; }
 
-    std::vector<Point> generatePlot(const FunctionParams& params) {
-        std::vector<Point> points;
-        float step = (xMax - xMin) / resolution;
-        
-        for (int i = 0; i <= resolution; ++i) {
-            float x = xMin + i * step;
-            float y = calculateY(params.type, x, params);
-            
-            bool is_valid = !std::isnan(y) && std::isfinite(y) && std::abs(y) < 1e6;
+    float getXMin() const { return xMin; }
+    float getXMax() const { return xMax; }
 
-            if (is_valid) {
-                points.emplace_back(x, y);
-            }
-        }
-        return points;
+    // Get current view range
+    void getRange(float& min, float& max) const {
+        min = xMin;
+        max = xMax;
     }
 };
 
-// --- Klasa zarządzająca renderowaniem ---
-
-class PlotRenderer {
+// Class managing grid and axes with zoom/pan support
+class CoordinateSystem {
 private:
-    float xMin, xMax, yMin, yMax;
-    const float FIXED_GRID_STEP = 1.0f;
+    float viewXMin, viewXMax, viewYMin, viewYMax;
+    float baseXMin, baseXMax, baseYMin, baseYMax;
 
 public:
-    PlotRenderer() : xMin(-10.0f), xMax(10.0f), yMin(-10.0f), yMax(10.0f) {}
+    CoordinateSystem() : viewXMin(-10.0f), viewXMax(10.0f), viewYMin(-10.0f), viewYMax(10.0f),
+                         baseXMin(-10.0f), baseXMax(10.0f), baseYMin(-10.0f), baseYMax(10.0f) {}
 
-    void drawPlots(const std::vector<std::vector<Point>>& plots, const std::vector<FunctionParams>& paramsList) {
-        
-        // Zakres Y jest taki sam jak X, aby siatka była proporcjonalna
-        yMin = xMin;
-        yMax = xMax;
+    void draw() {
+        // Calculate aspect ratio and adjust to make grid square
+        int windowWidth, windowHeight;
+        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+        float aspect = (float)windowWidth / windowHeight;
+
+        float currentWidth = viewXMax - viewXMin;
+        float currentHeight = viewYMax - viewYMin;
+        float targetAspect = 1.0f; // We want square grid (1:1 aspect)
+
+        // Calculate the scale factor needed
+        float scaleX = currentWidth;
+        float scaleY = currentHeight;
+
+        if (aspect > targetAspect) {
+            // Window is wider than it is tall, adjust x range
+            scaleX = scaleY * aspect;
+        } else {
+            // Window is taller than it is wide, adjust y range
+            scaleY = scaleX / aspect;
+        }
+
+        // Apply the adjusted scale to make grid square
+        float centerX = (viewXMin + viewXMax) / 2.0f;
+        float centerY = (viewYMin + viewYMax) / 2.0f;
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(xMin, xMax, yMin, yMax, -1.0f, 1.0f);
+        glOrtho(centerX - scaleX/2, centerX + scaleX/2,
+                centerY - scaleY/2, centerY + scaleY/2, -1.0f, 1.0f);
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
-        drawCoordinateSystem();
+        // Draw grid
+        glColor3f(0.12f, 0.12f, 0.12f);
+        glBegin(GL_LINES);
 
-        for (size_t i = 0; i < plots.size(); ++i) {
-            if (paramsList[i].isVisible) {
-                drawSinglePlot(plots[i], paramsList[i].color);
+        // Use independent spacing for x and y axes
+        float xSpacing = getSpacing(scaleX);
+        float ySpacing = getSpacing(scaleY);
+
+        // Horizontal grid lines
+        float yStart = ceil((centerY - scaleY/2) / ySpacing) * ySpacing;
+        float yEnd = centerY + scaleY/2;
+        for (float y = yStart; y <= yEnd; y += ySpacing) {
+            if (fabs(y) > ySpacing/10.0f) {
+                glVertex2f(centerX - scaleX/2, y);
+                glVertex2f(centerX + scaleX/2, y);
             }
         }
-    }
 
-    void drawSinglePlot(const std::vector<Point>& points, const ImVec4& color) {
-        if (points.empty()) return;
-
-        glColor3f(color.x, color.y, color.z);
-        glLineWidth(2.0f);
-
-        glBegin(GL_LINES);
-        for (size_t i = 1; i < points.size(); ++i) {
-            glVertex2f(points[i-1].x, points[i-1].y);
-            glVertex2f(points[i].x, points[i].y);
+        // Vertical grid lines
+        float xStart = ceil((centerX - scaleX/2) / xSpacing) * xSpacing;
+        float xEnd = centerX + scaleX/2;
+        for (float x = xStart; x <= xEnd; x += xSpacing) {
+            if (fabs(x) > xSpacing/10.0f) {
+                glVertex2f(x, centerY - scaleY/2);
+                glVertex2f(x, centerY + scaleY/2);
+            }
         }
+
+        glEnd();
+
+        // Draw thicker axes
+        glColor3f(0.4f, 0.4f, 0.4f);
+        glLineWidth(1.5f);
+        glBegin(GL_LINES);
+
+        // X axis
+        glVertex2f(centerX - scaleX/2, 0.0f);
+        glVertex2f(centerX + scaleX/2, 0.0f);
+
+        // Y axis
+        glVertex2f(0.0f, centerY - scaleY/2);
+        glVertex2f(0.0f, centerY + scaleY/2);
+
         glEnd();
         glLineWidth(1.0f);
-    }
 
-    void drawCoordinateSystem() {
-        // --- Siatka ---
+        // Draw arrows
+        drawArrows();
+
+        // Draw axis labels
+        drawAxisLabels(xSpacing, ySpacing);
+
+        // Draw main unit lines slightly darker
         glColor3f(0.2f, 0.2f, 0.2f);
         glBegin(GL_LINES);
 
-        float step = FIXED_GRID_STEP;
-
-        // Linie poziome
-        for (float y = std::floor(yMin / step) * step; y <= yMax; y += step) {
-            if (std::fabs(y) > 0.01f) {
-                glVertex2f(xMin, y);
-                glVertex2f(xMax, y);
+        // Main horizontal lines at integer multiples of ySpacing
+        for (float y = yStart; y <= yEnd; y += ySpacing) {
+            if (y != 0) {
+                glVertex2f(centerX - scaleX/2, y);
+                glVertex2f(centerX + scaleX/2, y);
             }
         }
 
-        // Linie pionowe
-        for (float x = std::floor(xMin / step) * step; x <= xMax; x += step) {
-            if (std::fabs(x) > 0.01f) {
-                glVertex2f(x, yMin);
-                glVertex2f(x, yMax);
+        // Main vertical lines at integer multiples of xSpacing
+        for (float x = xStart; x <= xEnd; x += xSpacing) {
+            if (x != 0) {
+                glVertex2f(x, centerY - scaleY/2);
+                glVertex2f(x, centerY + scaleY/2);
             }
         }
-        glEnd();
-        
-        // --- Rysowanie osi ---
-        glColor3f(0.8f, 0.8f, 0.8f);
-        glBegin(GL_LINES);
-        
-        // Oś X
-        float x_axis_y = std::clamp(0.0f, yMin, yMax);
-        glVertex2f(xMin, x_axis_y);
-        glVertex2f(xMax, x_axis_y);
-        
-        // Oś Y
-        float y_axis_x = std::clamp(0.0f, xMin, xMax);
-        glVertex2f(y_axis_x, yMin);
-        glVertex2f(y_axis_x, yMax);
+
         glEnd();
     }
 
-    void setXRange(float min, float max) { xMin = min; xMax = max; }
-    float getXMin() const { return xMin; }
-    float getXMax() const { return xMax; }
-    float getYMin() const { return xMin; }
-    float getYMax() const { return xMax; }
-    float getGridStep() const { return FIXED_GRID_STEP; }
-};
-
-// --- Główna klasa aplikacji (kontroler) ---
-
-class FunctionVisualizer {
 private:
-    GLFWwindow* window = nullptr;
-    PlotGenerator generator;
-    PlotRenderer renderer;
-    std::vector<FunctionParams> functionList;
-    const char* functionNames[6] = { "Liniowa (a*x + c)", "Kwadratowa (a*x² + b*x + c)", "Sinus (a*sin(b*x + c))",
-                                     "Wykładnicza (a*exp(b*x))", "Logarytmiczna (a*ln(b*x + c))",
-                                     "Pierwiastek (a*sqrt(b*x + c))" };
-    
-    float zoomLevel = 1.0f;
-    float panX = 0.0f, panY = 0.0f;
-    double lastMouseX, lastMouseY;
-    bool isPanning = false;
-    
-    int editingIndex = -1;  // Indeks funkcji w trakcie edycji (-1 oznacza brak edycji)
-    
-    // Buforowane wartości do edycji
-    float editP1 = 0.0f;
-    float editP2 = 0.0f;
-    float editP3 = 0.0f;
-    ImVec4 editColor;
-    int editType = 0;
+    float getSpacing(float range) {
+        if (range > 50.0f) return 5.0f;
+        else if (range > 20.0f) return 2.0f;
+        else if (range < 2.0f) return 0.2f;
+        else if (range < 5.0f) return 0.5f;
+        return 1.0f;
+    }
 
-    char newLabelBuffer[128] = ""; // Nie używamy już tego dla nowych funkcji
+    void drawArrows() {
+        glColor3f(0.8f, 0.8f, 0.8f);
+
+        float arrowSizeX = (viewXMax - viewXMin) * 0.015f;
+        float arrowSizeY = (viewYMax - viewYMin) * 0.015f;
+
+        glBegin(GL_TRIANGLES);
+
+        // X arrow
+        glVertex2f(viewXMax, 0.0f);
+        glVertex2f(viewXMax - arrowSizeX, arrowSizeY/2.0f);
+        glVertex2f(viewXMax - arrowSizeX, -arrowSizeY/2.0f);
+
+        // Y arrow
+        glVertex2f(0.0f, viewYMax);
+        glVertex2f(arrowSizeX/2.0f, viewYMax - arrowSizeY);
+        glVertex2f(-arrowSizeX/2.0f, viewYMax - arrowSizeY);
+
+        glEnd();
+    }
+
+    void drawAxisLabels(float xSpacing, float ySpacing) {
+        // Draw tick marks
+        glColor3f(0.7f, 0.7f, 0.7f);
+
+        // Draw X axis tick marks
+        int startX = static_cast<int>(ceil(viewXMin / xSpacing));
+        int endX = static_cast<int>(floor(viewXMax / xSpacing));
+
+        for (int x = startX; x <= endX; x++) {
+            if (x != 0) {
+                glBegin(GL_LINES);
+                glVertex2f(x * xSpacing, -0.1f);
+                glVertex2f(x * xSpacing, 0.1f);
+                glEnd();
+            }
+        }
+
+        // Draw Y axis tick marks
+        int startY = static_cast<int>(ceil(viewYMin / ySpacing));
+        int endY = static_cast<int>(floor(viewYMax / ySpacing));
+
+        for (int y = startY; y <= endY; y++) {
+            if (y != 0) {
+                glBegin(GL_LINES);
+                glVertex2f(-0.1f, y * ySpacing);
+                glVertex2f(0.1f, y * ySpacing);
+                glEnd();
+            }
+        }
+    }
 
 public:
-    FunctionVisualizer() {
-        functionList.emplace_back(FunctionParams{1.0f, 0.0f, 0.0f, ImVec4(1.0f, 0.5f, 0.2f, 1.0f), FunctionType::Linear});
-        // Automatycznie generujemy równanie dla domyślnej funkcji
-        functionList.back().label = functionList.back().generateEquation();
+    void setViewRange(float xmin, float xmax, float ymin, float ymax) {
+        viewXMin = xmin;
+        viewXMax = xmax;
+        viewYMin = ymin;
+        viewYMax = ymax;
     }
 
-    bool init() {
-        if (!initGLFW()) return false;
-        initImGui();
-        setupCallbacks();
-        return true;
+    void zoom(float factor, float centerX, float centerY) {
+        float xRange = viewXMax - viewXMin;
+        float yRange = viewYMax - viewYMin;
+
+        // FURTHER REDUCED scroll rate: 0.98 for zoom in, 1.02 for zoom out
+        float newXRange = xRange * factor;
+        float newYRange = yRange * factor;
+
+        viewXMin = centerX - newXRange / 2.0f;
+        viewXMax = centerX + newXRange / 2.0f;
+        viewYMin = centerY - newYRange / 2.0f;
+        viewYMax = centerY + newYRange / 2.0f;
     }
 
-    void run() {
-        while (!glfwWindowShouldClose(window)) {
-            glfwPollEvents();
-            render();
-        }
+    void pan(float dx, float dy) {
+        float xRange = viewXMax - viewXMin;
+        float yRange = viewYMax - viewYMin;
+
+        viewXMin += dx * xRange;
+        viewXMax += dx * xRange;
+        viewYMin += dy * yRange;
+        viewYMax += dy * yRange;
     }
 
-    void cleanup() {
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-        glfwDestroyWindow(window);
-        glfwTerminate();
+    void resetView() {
+        viewXMin = baseXMin;
+        viewXMax = baseXMax;
+        viewYMin = baseYMin;
+        viewYMax = baseYMax;
     }
 
-private:
-    // --- Obsługa zdarzeń ---
-    bool initGLFW() {
-        if (!glfwInit()) {
-            std::cerr << "Błąd inicjalizacji GLFW" << std::endl;
-            return false;
-        }
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-        window = glfwCreateWindow(1200, 800, "Wizualizator Funkcji", NULL, NULL);
-        if (!window) {
-            std::cerr << "Błąd tworzenia okna GLFW" << std::endl;
-            glfwTerminate();
-            return false;
-        }
-        glfwMakeContextCurrent(window);
-        glfwSwapInterval(1);
-        return true;
+    void getViewRange(float& xmin, float& xmax, float& ymin, float& ymax) const {
+        xmin = viewXMin;
+        xmax = viewXMax;
+        ymin = viewYMin;
+        ymax = viewYMax;
     }
 
-    void initImGui() {
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO(); (void)io;
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-        ImGui::StyleColorsDark();
-        ImGui_ImplGlfw_InitForOpenGL(window, true);
-        ImGui_ImplOpenGL3_Init("#version 120");
-    }
-    
-    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-        FunctionVisualizer* app = static_cast<FunctionVisualizer*>(glfwGetWindowUserPointer(window));
-        if (app && button == GLFW_MOUSE_BUTTON_LEFT) {
-            bool isMouseOverImGui = ImGui::GetIO().WantCaptureMouse;
-            if (action == GLFW_PRESS && !isMouseOverImGui) {
-                app->isPanning = true;
-                glfwGetCursorPos(window, &app->lastMouseX, &app->lastMouseY);
-            } else if (action == GLFW_RELEASE) {
-                app->isPanning = false;
-            }
-        }
-        ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
-    }
-
-    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-        FunctionVisualizer* app = static_cast<FunctionVisualizer*>(glfwGetWindowUserPointer(window));
-        if (app) {
-            if (!ImGui::GetIO().WantCaptureMouse) {
-                float zoomFactor = (yoffset > 0) ? 1.2f : 1.0f / 1.2f;
-                app->zoomLevel *= zoomFactor;
-                app->recalculateRange();
-            }
-        }
-        ImGui_ImplGlfw_ScrollCallback(window, xoffset, yoffset);
-    }
-
-    static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
-        FunctionVisualizer* app = static_cast<FunctionVisualizer*>(glfwGetWindowUserPointer(window));
-        if (app && app->isPanning) {
-            double deltaX = xpos - app->lastMouseX;
-            double deltaY = ypos - app->lastMouseY;
-
-            int width, height;
-            glfwGetWindowSize(window, &width, &height);
-            
-            float plotWidth = app->renderer.getXMax() - app->renderer.getXMin();
-            
-            app->panX -= (float)deltaX * (plotWidth / (float)width);
-            app->panY += (float)deltaY * (plotWidth / (float)height);
-
-            app->lastMouseX = xpos;
-            app->lastMouseY = ypos;
-            app->recalculateRange();
-        }
-        ImGui_ImplGlfw_CursorPosCallback(window, xpos, ypos);
-    }
-
-    void setupCallbacks() {
-        glfwSetWindowUserPointer(window, this);
-        glfwSetMouseButtonCallback(window, mouseButtonCallback);
-        glfwSetScrollCallback(window, scrollCallback);
-        glfwSetCursorPosCallback(window, cursorPosCallback);
-    }
-
-    void recalculateRange() {
-        zoomLevel = std::max(0.01f, zoomLevel);
-        
-        float defaultHalfRange = 10.0f;
-        float currentHalfRange = defaultHalfRange / zoomLevel;
-        
-        float xMin = -currentHalfRange + panX;
-        float xMax = currentHalfRange + panX;
-        
-        renderer.setXRange(xMin, xMax);
-        generator.setRange(xMin, xMax);
-    }
-    
-    std::vector<std::vector<Point>> generateAllPlots() {
-        std::vector<std::vector<Point>> plots;
-        for (const auto& func : functionList) {
-            plots.push_back(generator.generatePlot(func));
-        }
-        return plots;
-    }
-
-    void render() {
-        recalculateRange();
-        std::vector<std::vector<Point>> plots = generateAllPlots();
-
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        renderer.drawPlots(plots, functionList);
-        
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        
-        renderImGui();
-        
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        
-        glfwSwapBuffers(window);
-    }
-    
-    void renderImGui() {
-        // --- Panel Kontrolny ---
-        ImGui::Begin("Kontroler Wykresów \U0001F4C8");
-        
-        // --- Dodawanie nowej funkcji ---
-        ImGui::Text("Dodaj nową funkcję:");
-        static int newFunctionType = (int)FunctionType::Linear;
-        
-        ImGui::Combo("Typ", &newFunctionType, functionNames, IM_ARRAYSIZE(functionNames));
-        
-        if (ImGui::Button("\u2795 Dodaj")) {
-            FunctionParams newFunc;
-            newFunc.type = (FunctionType)newFunctionType;
-            newFunc.color = ImVec4((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, 1.0f);
-            
-            // Ustawienie domyślnych bezpiecznych wartości
-            if (newFunc.type == FunctionType::Logarithmic || newFunc.type == FunctionType::SquareRoot || newFunc.type == FunctionType::Sinus) {
-                newFunc.p2 = 1.0f;
-            } else if (newFunc.type == FunctionType::Quadratic) {
-                newFunc.p2 = 0.0f;
-            }
-            
-            // Generowanie równania jako nazwy
-            newFunc.label = newFunc.generateEquation();
-            functionList.push_back(newFunc);
-        }
-        
-        ImGui::Separator();
-        
-        // --- Informacje o interakcji ---
-        ImGui::SeparatorText("Interakcja z wykresem");
-        ImGui::Text("Zoom: %.2fx | Pan: (%.2f, %.2f)", zoomLevel, panX, panY);
-        ImGui::Text("Krok siatki: %.1f (stały)", renderer.getGridStep());
-
-        if (ImGui::Button("Resetuj Zoom/Pan")) {
-            zoomLevel = 1.0f;
-            panX = 0.0f;
-            panY = 0.0f;
-        }
-
-        ImGui::SeparatorText("Lista i ustawienia funkcji");
-        
-        // --- Edycja istniejących funkcji ---
-        int indexToDelete = -1;
-        for (size_t i = 0; i < functionList.size(); ++i) {
-            FunctionParams& func = functionList[i];
-            ImGui::PushID((int)i);
-
-            // Wyświetlenie
-            ImGui::ColorButton("##Color", func.color, ImGuiColorEditFlags_NoTooltip);
-            ImGui::SameLine();
-            ImGui::Checkbox("##Visible", &func.isVisible);
-            ImGui::SameLine();
-            
-            // Wyświetlanie równania jako nazwy
-            ImGui::Text("%s", func.label.c_str());
-            
-            ImGui::SameLine(ImGui::GetWindowWidth() - 120.0f);
-
-            // Przycisk "Usuń"
-            if (ImGui::Button("Usuń \u274C")) {
-                indexToDelete = (int)i;
-            }
-            
-            ImGui::SameLine();
-
-            // Przycisk "Edytuj"
-            std::string edit_id = "Edytuj \u270F\uFE0F##" + std::to_string(i);
-            if (ImGui::Button(edit_id.c_str())) {
-                editingIndex = (int)i;
-                // Zapisanie oryginalnych wartości do buforów edycji
-                editP1 = func.p1;
-                editP2 = func.p2;
-                editP3 = func.p3;
-                editColor = func.color;
-                editType = (int)func.type;
-            }
-            ImGui::PopID();
-            ImGui::Separator();
-        }
-        
-        // --- Modalne okno edycji ---
-        if (editingIndex >= 0 && editingIndex < (int)functionList.size()) {
-            ImGui::OpenPopup("Edycja Funkcji");
-        }
-        
-        if (ImGui::BeginPopupModal("Edycja Funkcji", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("Edycja funkcji:");
-            
-            // Wyświetlenie aktualnego równania
-            FunctionParams tempFunc;
-            tempFunc.p1 = editP1;
-            tempFunc.p2 = editP2;
-            tempFunc.p3 = editP3;
-            tempFunc.type = (FunctionType)editType;
-            std::string currentEquation = tempFunc.generateEquation();
-            ImGui::Text("Równanie: %s", currentEquation.c_str());
-            
-            ImGui::Separator();
-
-            // 1. Kolor
-            ImGui::Text("Kolor:");
-            ImGui::ColorEdit3("##Kolor", (float*)&editColor);
-            ImGui::Separator();
-
-            // 2. Typ funkcji
-            ImGui::Text("Typ funkcji:");
-            if (ImGui::Combo("##Typ", &editType, functionNames, IM_ARRAYSIZE(functionNames))) {
-                // Resetowanie p2 przy zmianie typu
-                FunctionType newType = (FunctionType)editType;
-                if (newType == FunctionType::Logarithmic || newType == FunctionType::SquareRoot || newType == FunctionType::Sinus) {
-                    editP2 = std::max(0.01f, editP2);
-                } else if (newType == FunctionType::Quadratic) {
-                    editP2 = 0.0f;
-                } else {
-                    editP2 = 1.0f;
-                }
-            }
-            ImGui::Separator();
-            
-            // 3. Edycja parametrów (p1, p2, p3) - TYLKO INPUT NUMERYCZNY
-            ImGui::Text("Parametry funkcji:");
-            
-            // Etykiety parametrów w zależności od typu funkcji
-            std::string p1_label, p2_label, p3_label;
-            switch ((FunctionType)editType) {
-                case FunctionType::Linear:
-                    p1_label = "a (współczynnik):";
-                    p3_label = "c (wyraz wolny):";
-                    break;
-                case FunctionType::Quadratic:
-                    p1_label = "a (x²):";
-                    p2_label = "b (x):";
-                    p3_label = "c (stała):";
-                    break;
-                case FunctionType::Sinus:
-                    p1_label = "a (amplituda):";
-                    p2_label = "b (częstotliwość):";
-                    p3_label = "c (faza):";
-                    break;
-                case FunctionType::Exponential:
-                    p1_label = "a (współczynnik):";
-                    p2_label = "b (wykładnik):";
-                    break;
-                case FunctionType::Logarithmic:
-                    p1_label = "a (współczynnik):";
-                    p2_label = "b (mnożnik):";
-                    p3_label = "c (przesunięcie):";
-                    break;
-                case FunctionType::SquareRoot:
-                    p1_label = "a (współczynnik):";
-                    p2_label = "b (mnożnik):";
-                    p3_label = "c (przesunięcie):";
-                    break;
-            }
-            
-            ImGui::Text("%s", p1_label.c_str());
-            ImGui::SameLine(150);
-            ImGui::PushItemWidth(200);
-            ImGui::InputFloat("##P1", &editP1, 0.1f, 1.0f, "%.3f");
-            ImGui::PopItemWidth();
-            
-            if (!p2_label.empty()) {
-                ImGui::Text("%s", p2_label.c_str());
-                ImGui::SameLine(150);
-                ImGui::PushItemWidth(200);
-                ImGui::InputFloat("##P2", &editP2, 0.1f, 1.0f, "%.3f");
-                ImGui::PopItemWidth();
-            }
-            
-            if (!p3_label.empty()) {
-                ImGui::Text("%s", p3_label.c_str());
-                ImGui::SameLine(150);
-                ImGui::PushItemWidth(200);
-                ImGui::InputFloat("##P3", &editP3, 0.1f, 1.0f, "%.3f");
-                ImGui::PopItemWidth();
-            }
-            
-            // Walidacja parametrów w zależności od typu funkcji
-            bool validParams = true;
-            std::string errorMessage = "";
-            
-            if ((FunctionType)editType == FunctionType::Logarithmic ||
-                (FunctionType)editType == FunctionType::SquareRoot) {
-                if (editP2 <= 0.0f) {
-                    validParams = false;
-                    errorMessage = "P2 (b) musi być większe od 0 dla logarytmu i pierwiastka!";
-                }
-            } else if ((FunctionType)editType == FunctionType::Sinus) {
-                if (editP2 <= 0.0f) {
-                    validParams = false;
-                    errorMessage = "P2 (b) musi być większe od 0 dla funkcji sinus!";
-                }
-            }
-            
-            if (!validParams) {
-                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "%s", errorMessage.c_str());
-            }
-            
-            ImGui::Separator();
-            
-            // Przyciski akcji
-            float buttonWidth = 120.0f;
-            float space = (ImGui::GetContentRegionAvail().x - buttonWidth * 2) / 3.0f;
-            
-            ImGui::Dummy(ImVec2(space, 0));
-            ImGui::SameLine();
-            
-            if (ImGui::Button("Zapisz", ImVec2(buttonWidth, 0)) && validParams) {
-                // Zastosowanie zmian i wygenerowanie nowego równania
-                FunctionParams& func = functionList[editingIndex];
-                func.p1 = editP1;
-                func.p2 = editP2;
-                func.p3 = editP3;
-                func.color = editColor;
-                func.type = (FunctionType)editType;
-                // Automatyczne wygenerowanie nowego równania
-                func.label = func.generateEquation();
-                editingIndex = -1;
-                ImGui::CloseCurrentPopup();
-            }
-            
-            ImGui::SameLine();
-            ImGui::Dummy(ImVec2(space, 0));
-            ImGui::SameLine();
-            
-            if (ImGui::Button("Anuluj", ImVec2(buttonWidth, 0))) {
-                // Odrzucenie zmian - przywrócenie oryginalnych wartości
-                editingIndex = -1;
-                ImGui::CloseCurrentPopup();
-            }
-            
-            ImGui::EndPopup();
-        }
-
-        // Obsługa usuwania po pętli
-        if (indexToDelete != -1) {
-            if (editingIndex == indexToDelete) {
-                editingIndex = -1;
-            } else if (editingIndex > indexToDelete) {
-                editingIndex--;
-            }
-            functionList.erase(functionList.begin() + indexToDelete);
-        }
-
-        ImGui::SeparatorText("Aktualny Zakres Wykresu");
-        ImGui::Text("X: [%.2f, %.2f]", renderer.getXMin(), renderer.getXMax());
-        ImGui::Text("Y: [%.2f, %.2f] (Stała siatka)", renderer.getYMin(), renderer.getYMax());
-        
-        ImGui::End();
+    // Convert screen coordinates to graph coordinates
+    void screenToGraph(int screenX, int screenY, int windowWidth, int windowHeight,
+                      float& graphX, float& graphY) {
+        graphX = viewXMin + (screenX / (float)windowWidth) * (viewXMax - viewXMin);
+        graphY = viewYMax - (screenY / (float)windowHeight) * (viewYMax - viewYMin);
     }
 };
 
-// --- Główna funkcja programu ---
-int main() {
-    srand(static_cast<unsigned int>(time(0)));
-    
-    FunctionVisualizer app;
-    
-    if (app.init()) {
-        app.run();
+// Global variables
+MultiFunctionPlotter plotter;
+CoordinateSystem coordSystem;
+
+// UI state
+char equationInput[256] = "y=x";
+float rangeMin = -10.0f, rangeMax = 10.0f;
+bool showHelp = false;
+bool isDragging = false;
+double lastMouseX, lastMouseY;
+
+// Mouse button callback
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        if (action == GLFW_PRESS) {
+            isDragging = true;
+            glfwGetCursorPos(window, &lastMouseX, &lastMouseY);
+        } else if (action == GLFW_RELEASE) {
+            isDragging = false;
+        }
     }
-    
-    app.cleanup();
+}
+
+// Mouse scroll callback with FURTHER REDUCED zoom rate
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+
+    double mouseX, mouseY;
+    glfwGetCursorPos(window, &mouseX, &mouseY);
+
+    float graphX, graphY;
+    coordSystem.screenToGraph(mouseX, mouseY, width, height, graphX, graphY);
+
+    // FURTHER REDUCED zoom rate: 0.98 for zoom in, 1.02 for zoom out
+    float zoom = (yoffset > 0) ? 0.98f : 1.02f;
+    coordSystem.zoom(zoom, graphX, graphY);
+
+    // Update plotter range
+    float xmin, xmax, ymin, ymax;
+    coordSystem.getViewRange(xmin, xmax, ymin, ymax);
+    plotter.setRange(xmin, xmax);
+
+    // Update UI range display
+    rangeMin = xmin;
+    rangeMax = xmax;
+}
+
+// Initialize GLFW
+bool initGLFW() {
+    if (!glfwInit()) {
+        cerr << "GLFW initialization error" << endl;
+        return false;
+    }
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+
+    window = glfwCreateWindow(1400, 900, "Advanced Function Visualizer", NULL, NULL);
+    if (!window) {
+        cerr << "GLFW window creation error" << endl;
+        glfwTerminate();
+        return false;
+    }
+
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
+
+    // Set callbacks
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    glfwSetScrollCallback(window, scrollCallback);
+
+    return true;
+}
+
+// Initialize ImGui
+void initImGui() {
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 120");
+}
+
+// Render function
+void render() {
+    // Handle mouse dragging for panning
+    if (isDragging) {
+        double mouseX, mouseY;
+        glfwGetCursorPos(window, &mouseX, &mouseY);
+
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+
+        float dx = (mouseX - lastMouseX) / width;
+        float dy = (mouseY - lastMouseY) / height;
+
+        coordSystem.pan(-dx, dy);
+
+        // Update plotter range
+        float xmin, xmax, ymin, ymax;
+        coordSystem.getViewRange(xmin, xmax, ymin, ymax);
+        plotter.setRange(xmin, xmax);
+
+        // Update UI range display
+        rangeMin = xmin;
+        rangeMax = xmax;
+
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
+    }
+
+    glClearColor(0.08f, 0.08f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Set projection matrix will be handled in CoordinateSystem::draw()
+
+    // Draw coordinate system (this sets up the projection with square grid)
+    coordSystem.draw();
+
+    // Draw all functions
+    plotter.draw();
+
+    // Render ImGui
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    // Control panel
+    ImGui::Begin("Function Controller", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+    ImGui::Text("Add Function:");
+    ImGui::InputText("Equation", equationInput, IM_ARRAYSIZE(equationInput));
+    ImGui::SameLine();
+    if (ImGui::Button("Add")) {
+        if (strlen(equationInput) > 0) {
+            plotter.addFunction(equationInput);
+            strcpy(equationInput, "");
+        }
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("?")) {
+        showHelp = !showHelp;
+    }
+
+    // Quick add buttons
+    ImGui::Text("Quick Add:");
+
+    if (ImGui::Button("y=x")) { strcpy(equationInput, "y=x"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
+    ImGui::SameLine();
+    if (ImGui::Button("y=|sin(x)|")) { strcpy(equationInput, "y=|sin(x)|"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
+    ImGui::SameLine();
+    if (ImGui::Button("y=-x^2")) { strcpy(equationInput, "y=-x^2"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
+
+    if (ImGui::Button("y=x^3-2x")) { strcpy(equationInput, "y=x^3-2x"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
+    ImGui::SameLine();
+    if (ImGui::Button("y=|sin(x+1)|-1")) { strcpy(equationInput, "y=|sin(x+1)|-1"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
+    ImGui::SameLine();
+    if (ImGui::Button("(x-2)^2+(y+1)^2=9")) { strcpy(equationInput, "(x-2)^2+(y+1)^2=9"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
+
+    if (ImGui::Button("y=sin(x)-2")) { strcpy(equationInput, "y=sin(x)-2"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
+    ImGui::SameLine();
+    if (ImGui::Button("x=1")) { strcpy(equationInput, "x=1"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
+    ImGui::SameLine();
+    if (ImGui::Button("y=x^4-3x^2")) { strcpy(equationInput, "y=x^4-3x^2"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
+
+    ImGui::Separator();
+
+    // Function list
+    auto& functions = plotter.getFunctions();
+    ImGui::Text("Functions (%d):", (int)functions.size());
+
+    if (ImGui::BeginChild("FunctionList", ImVec2(0, 200), true)) {
+        for (size_t i = 0; i < functions.size(); i++) {
+            ImGui::PushID((int)i);
+
+            ImGui::ColorEdit3("##color", (float*)&functions[i].color,
+                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            ImGui::SameLine();
+
+            ImGui::Checkbox("##enabled", &functions[i].enabled);
+            ImGui::SameLine();
+
+            if (functions[i].editing) {
+                // Editing mode
+                ImGui::PushItemWidth(200);
+                char editBuffer[256];
+                strcpy(editBuffer, functions[i].editBuffer.c_str());
+                if (ImGui::InputText("##edit", editBuffer, IM_ARRAYSIZE(editBuffer))) {
+                    functions[i].editBuffer = editBuffer;
+                }
+                ImGui::PopItemWidth();
+                ImGui::SameLine();
+
+                if (ImGui::Button("V")) {
+                    functions[i].applyEdit();
+                    plotter.editFunction(i, functions[i].expression);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("X")) {
+                    functions[i].cancelEdit();
+                }
+            } else {
+                // Display mode
+                ImGui::Text("%s", functions[i].expression.c_str());
+                ImGui::SameLine();
+
+                // Edit button
+                if (ImGui::Button("Edit")) {
+                    functions[i].startEditing();
+                }
+                ImGui::SameLine();
+
+                // Remove button
+                if (ImGui::Button("X")) {
+                    plotter.removeFunction(i);
+                    ImGui::PopID();
+                    break;
+                }
+            }
+
+            ImGui::PopID();
+        }
+    }
+    ImGui::EndChild();
+
+    if (ImGui::Button("Clear All")) {
+        plotter.clear();
+    }
+
+    ImGui::Separator();
+    ImGui::Text("Graph Range:");
+
+    // Range input with update button
+    if (ImGui::InputFloat("X min", &rangeMin)) {
+        // Update when user types
+    }
+    if (ImGui::InputFloat("X max", &rangeMax)) {
+        // Update when user types
+    }
+
+    if (ImGui::Button("Apply Range")) {
+        // Ensure min < max
+        if (rangeMin >= rangeMax) {
+            swap(rangeMin, rangeMax);
+        }
+        plotter.setRange(rangeMin, rangeMax);
+        coordSystem.setViewRange(rangeMin, rangeMax, -rangeMax, rangeMax);
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Reset View")) {
+        rangeMin = -10.0f;
+        rangeMax = 10.0f;
+        plotter.setRange(rangeMin, rangeMax);
+        coordSystem.resetView();
+    }
+
+    ImGui::Separator();
+    ImGui::Text("Controls:");
+    ImGui::BulletText("Left drag: Pan");
+    ImGui::BulletText("Scroll: Zoom (smooth rate: 0.98/1.02)");
+    ImGui::BulletText("Click 'Edit' to modify functions");
+    ImGui::BulletText("V to save, X to cancel editing");
+    ImGui::BulletText("Grid is now square (1:1 aspect ratio)");
+
+    ImGui::End();
+
+    // Help window
+    if (showHelp) {
+        ImGui::Begin("Help - Supported Functions", &showHelp, ImGuiWindowFlags_AlwaysAutoResize);
+
+        ImGui::Text("FIXED ISSUES:");
+        ImGui::Separator();
+        ImGui::BulletText("Circles: Non-zero centers now work");
+        ImGui::BulletText("Absolute functions: y=|sin(x)| works correctly");
+        ImGui::BulletText("Polynomials: Added support (x^3, x^4, etc.)");
+        ImGui::BulletText("Flipping: y=-x^2 works properly");
+        ImGui::BulletText("Square grid: Proper 1:1 aspect ratio");
+
+        ImGui::Separator();
+        ImGui::Text("EXAMPLES THAT NOW WORK:");
+        ImGui::BulletText("y=|sin(x)| (absolute sine)");
+        ImGui::BulletText("(x-2)^2+(y+1)^2=9 (shifted circle)");
+        ImGui::BulletText("y=x^3-2x (cubic polynomial)");
+        ImGui::BulletText("y=-x^2 (flipped parabola)");
+        ImGui::BulletText("y=|sin(x+1)|-1 (transformed absolute)");
+        ImGui::BulletText("y=x^4-3x^2 (quartic polynomial)");
+
+        ImGui::Separator();
+        ImGui::Text("SUPPORTED SYNTAX:");
+        ImGui::BulletText("Basic: y=x, y=x^2, y=2*x+3");
+        ImGui::BulletText("Polynomials: y=x^3-2x, y=x^4+3x^2-1");
+        ImGui::BulletText("Trig: sin(x), cos(x), tan(x), cot(x)");
+        ImGui::BulletText("Absolute: y=|x|, y=|sin(x)|, y=|x-2|");
+        ImGui::BulletText("Exponential: y=e^x, y=2^x");
+        ImGui::BulletText("Logarithmic: y=ln(x), y=log(x)");
+        ImGui::BulletText("Circles: x^2+y^2=r^2, (x-a)^2+(y-b)^2=r^2");
+        ImGui::BulletText("Lines: x=c, y=c");
+        ImGui::BulletText("Flipping: y=-f(x) for any f(x)");
+
+        ImGui::Separator();
+        if (ImGui::Button("Close Help")) {
+            showHelp = false;
+        }
+
+        ImGui::End();
+    }
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    glfwSwapBuffers(window);
+}
+
+// Cleanup
+void cleanup() {
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}
+
+int main() {
+    if (!initGLFW()) return -1;
+
+    initImGui();
+
+    // Initial setup
+    plotter.setRange(rangeMin, rangeMax);
+    coordSystem.setViewRange(rangeMin, rangeMax, -rangeMax, rangeMax);
+
+    // Add some example functions
+    plotter.addFunction("y=x");
+    plotter.addFunction("y=|sin(x)|");
+    plotter.addFunction("y=-x^2");
+    plotter.addFunction("(x-2)^2+(y+1)^2=9");
+
+    while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+        render();
+    }
+
+    cleanup();
     return 0;
+
+
 }
