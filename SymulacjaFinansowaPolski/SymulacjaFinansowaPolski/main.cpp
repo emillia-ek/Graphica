@@ -2,7 +2,9 @@
 #include <cmath>
 #include <vector>
 #include <string>
-#include <algorithm> // Dla std::minmax_element, std::clamp
+#include <algorithm>
+#include <iomanip>
+#include <sstream>
 
 // OpenGL i GLFW headers
 #include <GLFW/glfw3.h>
@@ -11,36 +13,130 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-// Makro dla liczby PI
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
 // --- Deklaracje struktur i wyliczeń ---
 
-// Typy funkcji
 enum class FunctionType {
     Linear,
     Quadratic,
     Sinus,
     Exponential,
     Logarithmic,
-    Tangent, // Nowa funkcja
-    SquareRoot // Nowa funkcja
+    SquareRoot
 };
 
-// Struktura przechowująca parametry funkcji
 struct FunctionParams {
-    float p1 = 1.0f; // Współczynnik 'a'
-    float p2 = 1.0f; // Współczynnik 'b'
-    float p3 = 0.0f; // Współczynnik 'c'
-    ImVec4 color = ImVec4(1.0f, 0.5f, 0.2f, 1.0f); // Domyślny kolor - pomarańczowy
+    float p1 = 1.0f;
+    float p2 = 1.0f;
+    float p3 = 0.0f;
+    ImVec4 color = ImVec4(1.0f, 0.5f, 0.2f, 1.0f);
     FunctionType type = FunctionType::Linear;
-    std::string label = "Wykres 1";
+    std::string label = "y = x";
     bool isVisible = true;
+    
+    // Metoda do generowania równania na podstawie parametrów
+    std::string generateEquation() const {
+        std::stringstream ss;
+        ss << "y = ";
+        
+        switch (type) {
+            case FunctionType::Linear:
+                if (p1 != 0) {
+                    if (p1 == 1.0f) ss << "x";
+                    else if (p1 == -1.0f) ss << "-x";
+                    else ss << std::fixed << std::setprecision(2) << p1 << "x";
+                    
+                    if (p3 > 0) ss << " + " << std::fixed << std::setprecision(2) << p3;
+                    else if (p3 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p3);
+                } else {
+                    ss << std::fixed << std::setprecision(2) << p3;
+                }
+                break;
+                
+            case FunctionType::Quadratic:
+                if (p1 != 0) {
+                    if (p1 == 1.0f) ss << "x²";
+                    else if (p1 == -1.0f) ss << "-x²";
+                    else ss << std::fixed << std::setprecision(2) << p1 << "x²";
+                    
+                    if (p2 > 0) ss << " + " << std::fixed << std::setprecision(2) << p2 << "x";
+                    else if (p2 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p2) << "x";
+                    
+                    if (p3 > 0) ss << " + " << std::fixed << std::setprecision(2) << p3;
+                    else if (p3 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p3);
+                } else if (p2 != 0) {
+                    if (p2 == 1.0f) ss << "x";
+                    else if (p2 == -1.0f) ss << "-x";
+                    else ss << std::fixed << std::setprecision(2) << p2 << "x";
+                    
+                    if (p3 > 0) ss << " + " << std::fixed << std::setprecision(2) << p3;
+                    else if (p3 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p3);
+                } else {
+                    ss << std::fixed << std::setprecision(2) << p3;
+                }
+                break;
+                
+            case FunctionType::Sinus:
+                if (p1 != 1.0f) {
+                    if (p1 == -1.0f) ss << "-";
+                    else ss << std::fixed << std::setprecision(2) << p1;
+                }
+                ss << "sin(";
+                if (p2 != 1.0f) ss << std::fixed << std::setprecision(2) << p2 << "x";
+                else ss << "x";
+                
+                if (p3 > 0) ss << " + " << std::fixed << std::setprecision(2) << p3;
+                else if (p3 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p3);
+                ss << ")";
+                break;
+                
+            case FunctionType::Exponential:
+                if (p1 != 1.0f) {
+                    if (p1 == -1.0f) ss << "-";
+                    else ss << std::fixed << std::setprecision(2) << p1;
+                }
+                ss << "exp(";
+                if (p2 != 1.0f) ss << std::fixed << std::setprecision(2) << p2 << "x";
+                else ss << "x";
+                ss << ")";
+                break;
+                
+            case FunctionType::Logarithmic:
+                if (p1 != 1.0f) {
+                    if (p1 == -1.0f) ss << "-";
+                    else ss << std::fixed << std::setprecision(2) << p1;
+                }
+                ss << "ln(";
+                if (p2 != 1.0f) ss << std::fixed << std::setprecision(2) << p2 << "x";
+                else ss << "x";
+                
+                if (p3 > 0) ss << " + " << std::fixed << std::setprecision(2) << p3;
+                else if (p3 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p3);
+                ss << ")";
+                break;
+                
+            case FunctionType::SquareRoot:
+                if (p1 != 1.0f) {
+                    if (p1 == -1.0f) ss << "-";
+                    else ss << std::fixed << std::setprecision(2) << p1;
+                }
+                ss << "√(";
+                if (p2 != 1.0f) ss << std::fixed << std::setprecision(2) << p2 << "x";
+                else ss << "x";
+                
+                if (p3 > 0) ss << " + " << std::fixed << std::setprecision(2) << p3;
+                else if (p3 < 0) ss << " - " << std::fixed << std::setprecision(2) << std::abs(p3);
+                ss << ")";
+                break;
+        }
+        
+        return ss.str();
+    }
 };
 
-// Struktura przechowująca punkt na wykresie
 struct Point {
     float x, y;
     Point(float x, float y) : x(x), y(y) {}
@@ -51,7 +147,7 @@ struct Point {
 class PlotGenerator {
 private:
     float xMin, xMax;
-    int resolution = 500; // Zwiększona rozdzielczość
+    int resolution = 500;
 
 public:
     PlotGenerator() : xMin(-10.0f), xMax(10.0f) {}
@@ -61,37 +157,28 @@ public:
         xMax = max;
     }
 
-    // Funkcja obliczająca wartość Y dla danego typu i parametrów
     float calculateY(FunctionType type, float x, const FunctionParams& params) {
         switch (type) {
             case FunctionType::Linear:
-                return params.p1 * x + params.p3; // y = a*x + c
+                return params.p1 * x + params.p3;
             case FunctionType::Quadratic:
-                return params.p1 * x * x + params.p2 * x + params.p3; // y = a*x^2 + b*x + c
+                return params.p1 * x * x + params.p2 * x + params.p3;
             case FunctionType::Sinus:
-                return params.p1 * std::sin(params.p2 * x + params.p3); // y = a*sin(b*x + c)
+                return params.p1 * std::sin(params.p2 * x + params.p3);
             case FunctionType::Exponential:
-                return params.p1 * std::exp(params.p2 * x); // y = a*exp(b*x)
+                return params.p1 * std::exp(params.p2 * x);
             case FunctionType::Logarithmic:
                 if (params.p2 * x + params.p3 > 0)
-                    return params.p1 * std::log(params.p2 * x + params.p3); // y = a*ln(b*x + c)
-                return NAN; // poza dziedziną
-            case FunctionType::Tangent:
-                // Zapewnienie, że x nie jest blisko asymptoty (np. PI/2 + k*PI)
-                if (std::fmod(params.p2 * x + params.p3, M_PI) > M_PI / 2.0f - 0.01f ||
-                    std::fmod(params.p2 * x + params.p3, M_PI) < -M_PI / 2.0f + 0.01f) {
-                    return NAN;
-                }
-                return params.p1 * std::tan(params.p2 * x + params.p3); // y = a*tan(b*x + c)
+                    return params.p1 * std::log(params.p2 * x + params.p3);
+                return NAN;
             case FunctionType::SquareRoot:
                 if (params.p2 * x + params.p3 >= 0)
-                    return params.p1 * std::sqrt(params.p2 * x + params.p3); // y = a*sqrt(b*x + c)
-                return NAN; // poza dziedziną
+                    return params.p1 * std::sqrt(params.p2 * x + params.p3);
+                return NAN;
         }
         return 0.0f;
     }
 
-    // Generowanie punktów dla pojedynczej funkcji
     std::vector<Point> generatePlot(const FunctionParams& params) {
         std::vector<Point> points;
         float step = (xMax - xMin) / resolution;
@@ -99,8 +186,10 @@ public:
         for (int i = 0; i <= resolution; ++i) {
             float x = xMin + i * step;
             float y = calculateY(params.type, x, params);
-            // Dodajemy tylko poprawne punkty (nie NAN)
-            if (!std::isnan(y)) {
+            
+            bool is_valid = !std::isnan(y) && std::isfinite(y) && std::abs(y) < 1e6;
+
+            if (is_valid) {
                 points.emplace_back(x, y);
             }
         }
@@ -113,47 +202,17 @@ public:
 class PlotRenderer {
 private:
     float xMin, xMax, yMin, yMax;
-    std::vector<Point> allPoints;
+    const float FIXED_GRID_STEP = 1.0f;
 
 public:
     PlotRenderer() : xMin(-10.0f), xMax(10.0f), yMin(-10.0f), yMax(10.0f) {}
 
-    // Rysowanie wykresów
     void drawPlots(const std::vector<std::vector<Point>>& plots, const std::vector<FunctionParams>& paramsList) {
-        allPoints.clear();
+        
+        // Zakres Y jest taki sam jak X, aby siatka była proporcjonalna
+        yMin = xMin;
+        yMax = xMax;
 
-        // Zebranie wszystkich punktów i ustalenie zakresu Y (do auto-scalingu)
-        for (const auto& plot : plots) {
-            allPoints.insert(allPoints.end(), plot.begin(), plot.end());
-        }
-
-        // Auto-scaling Y
-        if (!allPoints.empty()) {
-            auto [min_it, max_it] = std::minmax_element(allPoints.begin(), allPoints.end(),
-                                                        [](const Point& a, const Point& b) { return a.y < b.y; });
-            float newYMin = min_it->y;
-            float newYMax = max_it->y;
-
-            // Dodanie małego marginesu i ograniczenie, aby nie "oszalały"
-            float margin = std::max(1.0f, (newYMax - newYMin) * 0.1f);
-            yMin = newYMin - margin;
-            yMax = newYMax + margin;
-
-            // Zabezpieczenie przed zbyt dużymi wartościami (można dostosować)
-            yMin = std::clamp(yMin, -1000.0f, 1000.0f);
-            yMax = std::clamp(yMax, -1000.0f, 1000.0f);
-
-            // Jeśli min i max są zbyt blisko siebie, ustal domyślny zakres
-            if (std::abs(yMax - yMin) < 0.1f) {
-                yMin -= 5.0f;
-                yMax += 5.0f;
-            }
-        } else {
-            yMin = -10.0f;
-            yMax = 10.0f;
-        }
-
-        // Ustawienie macierzy projekcji
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glOrtho(xMin, xMax, yMin, yMax, -1.0f, 1.0f);
@@ -161,10 +220,8 @@ public:
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
-        // Rysowanie układu współrzędnych i siatki
         drawCoordinateSystem();
 
-        // Rysowanie wszystkich wykresów
         for (size_t i = 0; i < plots.size(); ++i) {
             if (paramsList[i].isVisible) {
                 drawSinglePlot(plots[i], paramsList[i].color);
@@ -172,28 +229,27 @@ public:
         }
     }
 
-    // Rysowanie pojedynczego wykresu
     void drawSinglePlot(const std::vector<Point>& points, const ImVec4& color) {
         if (points.empty()) return;
 
         glColor3f(color.x, color.y, color.z);
-        glLineWidth(2.0f); // Grubsza linia
+        glLineWidth(2.0f);
 
-        glBegin(GL_LINE_STRIP);
-        for (const auto& point : points) {
-            glVertex2f(point.x, point.y);
+        glBegin(GL_LINES);
+        for (size_t i = 1; i < points.size(); ++i) {
+            glVertex2f(points[i-1].x, points[i-1].y);
+            glVertex2f(points[i].x, points[i].y);
         }
         glEnd();
         glLineWidth(1.0f);
     }
 
-    // Rysowanie osi i siatki
     void drawCoordinateSystem() {
-        // Rysowanie siatki
-        glColor3f(0.2f, 0.2f, 0.2f); // Ciemniejsza siatka
+        // --- Siatka ---
+        glColor3f(0.2f, 0.2f, 0.2f);
         glBegin(GL_LINES);
 
-        float step = (xMax - xMin) > 20.0f ? 5.0f : 1.0f; // Dynamiczny krok siatki
+        float step = FIXED_GRID_STEP;
 
         // Linie poziome
         for (float y = std::floor(yMin / step) * step; y <= yMax; y += step) {
@@ -211,30 +267,29 @@ public:
             }
         }
         glEnd();
-
-        // Rysowanie osi
-        glColor3f(0.8f, 0.8f, 0.8f); // Jaśniejsze osie
+        
+        // --- Rysowanie osi ---
+        glColor3f(0.8f, 0.8f, 0.8f);
         glBegin(GL_LINES);
+        
         // Oś X
         float x_axis_y = std::clamp(0.0f, yMin, yMax);
         glVertex2f(xMin, x_axis_y);
         glVertex2f(xMax, x_axis_y);
+        
         // Oś Y
         float y_axis_x = std::clamp(0.0f, xMin, xMax);
         glVertex2f(y_axis_x, yMin);
         glVertex2f(y_axis_x, yMax);
         glEnd();
-
-        // Rysowanie podziałek (Tyki) na osi X - uproszczone, ImGui renderuje tekst
-        // Rysowanie podziałek (Tyki) na osi Y - uproszczone, ImGui renderuje tekst
     }
 
-    // Gettery do zakresów
     void setXRange(float min, float max) { xMin = min; xMax = max; }
     float getXMin() const { return xMin; }
     float getXMax() const { return xMax; }
-    float getYMin() const { return yMin; }
-    float getYMax() const { return yMax; }
+    float getYMin() const { return xMin; }
+    float getYMax() const { return xMax; }
+    float getGridStep() const { return FIXED_GRID_STEP; }
 };
 
 // --- Główna klasa aplikacji (kontroler) ---
@@ -244,20 +299,32 @@ private:
     GLFWwindow* window = nullptr;
     PlotGenerator generator;
     PlotRenderer renderer;
-    std::vector<FunctionParams> functionList; // Lista funkcji do narysowania
-    const char* functionNames[7] = { "Liniowa (a*x + c)", "Kwadratowa (a*x² + b*x + c)", "Sinus (a*sin(b*x + c))",
+    std::vector<FunctionParams> functionList;
+    const char* functionNames[6] = { "Liniowa (a*x + c)", "Kwadratowa (a*x² + b*x + c)", "Sinus (a*sin(b*x + c))",
                                      "Wykładnicza (a*exp(b*x))", "Logarytmiczna (a*ln(b*x + c))",
-                                     "Tangens (a*tan(b*x + c))", "Pierwiastek (a*sqrt(b*x + c))" };
+                                     "Pierwiastek (a*sqrt(b*x + c))" };
     
-    // Zmienne do Pan/Zoom
     float zoomLevel = 1.0f;
     float panX = 0.0f, panY = 0.0f;
     double lastMouseX, lastMouseY;
     bool isPanning = false;
+    
+    int editingIndex = -1;  // Indeks funkcji w trakcie edycji (-1 oznacza brak edycji)
+    
+    // Buforowane wartości do edycji
+    float editP1 = 0.0f;
+    float editP2 = 0.0f;
+    float editP3 = 0.0f;
+    ImVec4 editColor;
+    int editType = 0;
+
+    char newLabelBuffer[128] = ""; // Nie używamy już tego dla nowych funkcji
 
 public:
     FunctionVisualizer() {
-        functionList.emplace_back(FunctionParams{1.0f, 0.0f, 0.0f, ImVec4(1.0f, 0.5f, 0.2f, 1.0f), FunctionType::Linear, "Liniowa", true});
+        functionList.emplace_back(FunctionParams{1.0f, 0.0f, 0.0f, ImVec4(1.0f, 0.5f, 0.2f, 1.0f), FunctionType::Linear});
+        // Automatycznie generujemy równanie dla domyślnej funkcji
+        functionList.back().label = functionList.back().generateEquation();
     }
 
     bool init() {
@@ -283,7 +350,7 @@ public:
     }
 
 private:
-    // --- Inicjalizacja ---
+    // --- Obsługa zdarzeń ---
     bool initGLFW() {
         if (!glfwInit()) {
             std::cerr << "Błąd inicjalizacji GLFW" << std::endl;
@@ -291,7 +358,7 @@ private:
         }
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-        window = glfwCreateWindow(1200, 800, "Wizualizator Funkcji (Wypasiony)", NULL, NULL);
+        window = glfwCreateWindow(1200, 800, "Wizualizator Funkcji", NULL, NULL);
         if (!window) {
             std::cerr << "Błąd tworzenia okna GLFW" << std::endl;
             glfwTerminate();
@@ -312,26 +379,25 @@ private:
         ImGui_ImplOpenGL3_Init("#version 120");
     }
     
-    // --- Obsługa zdarzeń (Pan/Zoom) ---
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
         FunctionVisualizer* app = static_cast<FunctionVisualizer*>(glfwGetWindowUserPointer(window));
         if (app && button == GLFW_MOUSE_BUTTON_LEFT) {
-            if (action == GLFW_PRESS) {
+            bool isMouseOverImGui = ImGui::GetIO().WantCaptureMouse;
+            if (action == GLFW_PRESS && !isMouseOverImGui) {
                 app->isPanning = true;
                 glfwGetCursorPos(window, &app->lastMouseX, &app->lastMouseY);
             } else if (action == GLFW_RELEASE) {
                 app->isPanning = false;
             }
         }
-        ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods); // Użycie ImGui
+        ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
     }
 
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
         FunctionVisualizer* app = static_cast<FunctionVisualizer*>(glfwGetWindowUserPointer(window));
         if (app) {
-            // Unikanie zoomowania, jeśli mysz jest nad oknem ImGui
             if (!ImGui::GetIO().WantCaptureMouse) {
-                float zoomFactor = (yoffset > 0) ? 1.1f : 1.0f / 1.1f;
+                float zoomFactor = (yoffset > 0) ? 1.2f : 1.0f / 1.2f;
                 app->zoomLevel *= zoomFactor;
                 app->recalculateRange();
             }
@@ -341,19 +407,17 @@ private:
 
     static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
         FunctionVisualizer* app = static_cast<FunctionVisualizer*>(glfwGetWindowUserPointer(window));
-        if (app && app->isPanning && !ImGui::GetIO().WantCaptureMouse) {
+        if (app && app->isPanning) {
             double deltaX = xpos - app->lastMouseX;
             double deltaY = ypos - app->lastMouseY;
 
             int width, height;
             glfwGetWindowSize(window, &width, &height);
-
-            // Przeliczenie delty pikselowej na deltę w jednostkach wykresu
-            float plotWidth = app->renderer.getXMax() - app->renderer.getXMin();
-            float plotHeight = app->renderer.getYMax() - app->renderer.getYMin();
             
-            app->panX -= (float)deltaX * plotWidth / (float)width;
-            app->panY += (float)deltaY * plotHeight / (float)height; // Odwrócenie Y
+            float plotWidth = app->renderer.getXMax() - app->renderer.getXMin();
+            
+            app->panX -= (float)deltaX * (plotWidth / (float)width);
+            app->panY += (float)deltaY * (plotWidth / (float)height);
 
             app->lastMouseX = xpos;
             app->lastMouseY = ypos;
@@ -369,12 +433,15 @@ private:
         glfwSetCursorPosCallback(window, cursorPosCallback);
     }
 
-    // --- Logika wykresu ---
     void recalculateRange() {
-        float defaultRange = 10.0f;
-        float xRange = defaultRange / zoomLevel;
-        float xMin = -xRange + panX;
-        float xMax = xRange + panX;
+        zoomLevel = std::max(0.01f, zoomLevel);
+        
+        float defaultHalfRange = 10.0f;
+        float currentHalfRange = defaultHalfRange / zoomLevel;
+        
+        float xMin = -currentHalfRange + panX;
+        float xMax = currentHalfRange + panX;
+        
         renderer.setXRange(xMin, xMax);
         generator.setRange(xMin, xMax);
     }
@@ -387,21 +454,15 @@ private:
         return plots;
     }
 
-    // --- Renderowanie ---
     void render() {
-        // Obliczanie nowego zakresu na podstawie zoom/pan
         recalculateRange();
-        
-        // Generowanie punktów dla wszystkich widocznych funkcji
         std::vector<std::vector<Point>> plots = generateAllPlots();
 
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Rysowanie wykresów
         renderer.drawPlots(plots, functionList);
         
-        // Renderowanie ImGui
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -416,122 +477,260 @@ private:
     
     void renderImGui() {
         // --- Panel Kontrolny ---
-        ImGui::Begin("Kontroler Wykresów 📈");
+        ImGui::Begin("Kontroler Wykresów \U0001F4C8");
         
         // --- Dodawanie nowej funkcji ---
         ImGui::Text("Dodaj nową funkcję:");
         static int newFunctionType = (int)FunctionType::Linear;
+        
         ImGui::Combo("Typ", &newFunctionType, functionNames, IM_ARRAYSIZE(functionNames));
-        ImGui::SameLine();
-        if (ImGui::Button("➕ Dodaj")) {
+        
+        if (ImGui::Button("\u2795 Dodaj")) {
             FunctionParams newFunc;
             newFunc.type = (FunctionType)newFunctionType;
-            newFunc.label = "Wykres " + std::to_string(functionList.size() + 1);
-            // Wygenerowanie losowego koloru
             newFunc.color = ImVec4((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, 1.0f);
+            
+            // Ustawienie domyślnych bezpiecznych wartości
+            if (newFunc.type == FunctionType::Logarithmic || newFunc.type == FunctionType::SquareRoot || newFunc.type == FunctionType::Sinus) {
+                newFunc.p2 = 1.0f;
+            } else if (newFunc.type == FunctionType::Quadratic) {
+                newFunc.p2 = 0.0f;
+            }
+            
+            // Generowanie równania jako nazwy
+            newFunc.label = newFunc.generateEquation();
             functionList.push_back(newFunc);
         }
+        
         ImGui::Separator();
         
-        // --- Lista funkcji ---
-        ImGui::Text("Aktywne wykresy: %zu", functionList.size());
-        ImGui::Text("Zoom: %.2f | Pan X: %.2f | Pan Y: %.2f", zoomLevel, panX, panY);
-
+        // --- Informacje o interakcji ---
         ImGui::SeparatorText("Interakcja z wykresem");
+        ImGui::Text("Zoom: %.2fx | Pan: (%.2f, %.2f)", zoomLevel, panX, panY);
+        ImGui::Text("Krok siatki: %.1f (stały)", renderer.getGridStep());
+
         if (ImGui::Button("Resetuj Zoom/Pan")) {
             zoomLevel = 1.0f;
             panX = 0.0f;
             panY = 0.0f;
         }
 
-        ImGui::SeparatorText("Ustawienia funkcji");
+        ImGui::SeparatorText("Lista i ustawienia funkcji");
         
         // --- Edycja istniejących funkcji ---
         int indexToDelete = -1;
         for (size_t i = 0; i < functionList.size(); ++i) {
             FunctionParams& func = functionList[i];
-            
-            // Unikalny ID dla każdego elementu
             ImGui::PushID((int)i);
 
-            // Używamy Tree Node do zwijania/rozwijania
-            if (ImGui::TreeNode(func.label.c_str())) {
-                
-                ImGui::Checkbox("Widoczny", &func.isVisible);
+            // Wyświetlenie
+            ImGui::ColorButton("##Color", func.color, ImGuiColorEditFlags_NoTooltip);
+            ImGui::SameLine();
+            ImGui::Checkbox("##Visible", &func.isVisible);
+            ImGui::SameLine();
+            
+            // Wyświetlanie równania jako nazwy
+            ImGui::Text("%s", func.label.c_str());
+            
+            ImGui::SameLine(ImGui::GetWindowWidth() - 120.0f);
 
-                // Zmiana typu
-                int currentType = (int)func.type;
-                if (ImGui::Combo("Typ funkcji", &currentType, functionNames, IM_ARRAYSIZE(functionNames))) {
-                    func.type = (FunctionType)currentType;
-                }
-                
-                // Edycja parametrów za pomocą sliderów
-                switch (func.type) {
-                    case FunctionType::Linear:
-                        ImGui::SliderFloat("a", &func.p1, -5.0f, 5.0f);
-                        ImGui::SliderFloat("c", &func.p3, -10.0f, 10.0f);
-                        break;
-                    case FunctionType::Quadratic:
-                        ImGui::SliderFloat("a (x²)", &func.p1, -5.0f, 5.0f);
-                        ImGui::SliderFloat("b (x)", &func.p2, -5.0f, 5.0f);
-                        ImGui::SliderFloat("c (stała)", &func.p3, -10.0f, 10.0f);
-                        break;
-                    case FunctionType::Sinus:
-                        ImGui::SliderFloat("Amplituda (a)", &func.p1, -5.0f, 5.0f);
-                        ImGui::SliderFloat("Częstotliwość (b)", &func.p2, 0.1f, 5.0f);
-                        ImGui::SliderFloat("Przesunięcie fazowe (c)", &func.p3, (float)-M_PI, (float)M_PI);
-                        break;
-                    case FunctionType::Exponential:
-                        ImGui::SliderFloat("Współczynnik (a)", &func.p1, -5.0f, 5.0f);
-                        ImGui::SliderFloat("Wykładnik (b)", &func.p2, -1.0f, 1.0f);
-                        break;
-                    case FunctionType::Logarithmic:
-                        ImGui::SliderFloat("Współczynnik (a)", &func.p1, -5.0f, 5.0f);
-                        ImGui::SliderFloat("Mnożnik (b)", &func.p2, 0.1f, 5.0f);
-                        ImGui::SliderFloat("Przesunięcie (c)", &func.p3, -5.0f, 5.0f);
-                        break;
-                    case FunctionType::Tangent:
-                        ImGui::SliderFloat("Amplituda (a)", &func.p1, -5.0f, 5.0f);
-                        ImGui::SliderFloat("Częstotliwość (b)", &func.p2, 0.1f, 5.0f);
-                        ImGui::SliderFloat("Przesunięcie fazowe (c)", &func.p3, (float)-M_PI, (float)M_PI);
-                        break;
-                    case FunctionType::SquareRoot:
-                        ImGui::SliderFloat("Współczynnik (a)", &func.p1, -5.0f, 5.0f);
-                        ImGui::SliderFloat("Mnożnik (b)", &func.p2, 0.1f, 5.0f);
-                        ImGui::SliderFloat("Przesunięcie (c)", &func.p3, -5.0f, 5.0f);
-                        break;
-                }
-                
-                ImGui::ColorEdit3("Kolor", (float*)&func.color);
-                
-                ImGui::SameLine();
-                if (ImGui::Button("Usuń")) {
-                    indexToDelete = (int)i;
-                }
-                
-                ImGui::TreePop();
+            // Przycisk "Usuń"
+            if (ImGui::Button("Usuń \u274C")) {
+                indexToDelete = (int)i;
+            }
+            
+            ImGui::SameLine();
+
+            // Przycisk "Edytuj"
+            std::string edit_id = "Edytuj \u270F\uFE0F##" + std::to_string(i);
+            if (ImGui::Button(edit_id.c_str())) {
+                editingIndex = (int)i;
+                // Zapisanie oryginalnych wartości do buforów edycji
+                editP1 = func.p1;
+                editP2 = func.p2;
+                editP3 = func.p3;
+                editColor = func.color;
+                editType = (int)func.type;
             }
             ImGui::PopID();
+            ImGui::Separator();
         }
         
+        // --- Modalne okno edycji ---
+        if (editingIndex >= 0 && editingIndex < (int)functionList.size()) {
+            ImGui::OpenPopup("Edycja Funkcji");
+        }
+        
+        if (ImGui::BeginPopupModal("Edycja Funkcji", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Edycja funkcji:");
+            
+            // Wyświetlenie aktualnego równania
+            FunctionParams tempFunc;
+            tempFunc.p1 = editP1;
+            tempFunc.p2 = editP2;
+            tempFunc.p3 = editP3;
+            tempFunc.type = (FunctionType)editType;
+            std::string currentEquation = tempFunc.generateEquation();
+            ImGui::Text("Równanie: %s", currentEquation.c_str());
+            
+            ImGui::Separator();
+
+            // 1. Kolor
+            ImGui::Text("Kolor:");
+            ImGui::ColorEdit3("##Kolor", (float*)&editColor);
+            ImGui::Separator();
+
+            // 2. Typ funkcji
+            ImGui::Text("Typ funkcji:");
+            if (ImGui::Combo("##Typ", &editType, functionNames, IM_ARRAYSIZE(functionNames))) {
+                // Resetowanie p2 przy zmianie typu
+                FunctionType newType = (FunctionType)editType;
+                if (newType == FunctionType::Logarithmic || newType == FunctionType::SquareRoot || newType == FunctionType::Sinus) {
+                    editP2 = std::max(0.01f, editP2);
+                } else if (newType == FunctionType::Quadratic) {
+                    editP2 = 0.0f;
+                } else {
+                    editP2 = 1.0f;
+                }
+            }
+            ImGui::Separator();
+            
+            // 3. Edycja parametrów (p1, p2, p3) - TYLKO INPUT NUMERYCZNY
+            ImGui::Text("Parametry funkcji:");
+            
+            // Etykiety parametrów w zależności od typu funkcji
+            std::string p1_label, p2_label, p3_label;
+            switch ((FunctionType)editType) {
+                case FunctionType::Linear:
+                    p1_label = "a (współczynnik):";
+                    p3_label = "c (wyraz wolny):";
+                    break;
+                case FunctionType::Quadratic:
+                    p1_label = "a (x²):";
+                    p2_label = "b (x):";
+                    p3_label = "c (stała):";
+                    break;
+                case FunctionType::Sinus:
+                    p1_label = "a (amplituda):";
+                    p2_label = "b (częstotliwość):";
+                    p3_label = "c (faza):";
+                    break;
+                case FunctionType::Exponential:
+                    p1_label = "a (współczynnik):";
+                    p2_label = "b (wykładnik):";
+                    break;
+                case FunctionType::Logarithmic:
+                    p1_label = "a (współczynnik):";
+                    p2_label = "b (mnożnik):";
+                    p3_label = "c (przesunięcie):";
+                    break;
+                case FunctionType::SquareRoot:
+                    p1_label = "a (współczynnik):";
+                    p2_label = "b (mnożnik):";
+                    p3_label = "c (przesunięcie):";
+                    break;
+            }
+            
+            ImGui::Text("%s", p1_label.c_str());
+            ImGui::SameLine(150);
+            ImGui::PushItemWidth(200);
+            ImGui::InputFloat("##P1", &editP1, 0.1f, 1.0f, "%.3f");
+            ImGui::PopItemWidth();
+            
+            if (!p2_label.empty()) {
+                ImGui::Text("%s", p2_label.c_str());
+                ImGui::SameLine(150);
+                ImGui::PushItemWidth(200);
+                ImGui::InputFloat("##P2", &editP2, 0.1f, 1.0f, "%.3f");
+                ImGui::PopItemWidth();
+            }
+            
+            if (!p3_label.empty()) {
+                ImGui::Text("%s", p3_label.c_str());
+                ImGui::SameLine(150);
+                ImGui::PushItemWidth(200);
+                ImGui::InputFloat("##P3", &editP3, 0.1f, 1.0f, "%.3f");
+                ImGui::PopItemWidth();
+            }
+            
+            // Walidacja parametrów w zależności od typu funkcji
+            bool validParams = true;
+            std::string errorMessage = "";
+            
+            if ((FunctionType)editType == FunctionType::Logarithmic ||
+                (FunctionType)editType == FunctionType::SquareRoot) {
+                if (editP2 <= 0.0f) {
+                    validParams = false;
+                    errorMessage = "P2 (b) musi być większe od 0 dla logarytmu i pierwiastka!";
+                }
+            } else if ((FunctionType)editType == FunctionType::Sinus) {
+                if (editP2 <= 0.0f) {
+                    validParams = false;
+                    errorMessage = "P2 (b) musi być większe od 0 dla funkcji sinus!";
+                }
+            }
+            
+            if (!validParams) {
+                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "%s", errorMessage.c_str());
+            }
+            
+            ImGui::Separator();
+            
+            // Przyciski akcji
+            float buttonWidth = 120.0f;
+            float space = (ImGui::GetContentRegionAvail().x - buttonWidth * 2) / 3.0f;
+            
+            ImGui::Dummy(ImVec2(space, 0));
+            ImGui::SameLine();
+            
+            if (ImGui::Button("Zapisz", ImVec2(buttonWidth, 0)) && validParams) {
+                // Zastosowanie zmian i wygenerowanie nowego równania
+                FunctionParams& func = functionList[editingIndex];
+                func.p1 = editP1;
+                func.p2 = editP2;
+                func.p3 = editP3;
+                func.color = editColor;
+                func.type = (FunctionType)editType;
+                // Automatyczne wygenerowanie nowego równania
+                func.label = func.generateEquation();
+                editingIndex = -1;
+                ImGui::CloseCurrentPopup();
+            }
+            
+            ImGui::SameLine();
+            ImGui::Dummy(ImVec2(space, 0));
+            ImGui::SameLine();
+            
+            if (ImGui::Button("Anuluj", ImVec2(buttonWidth, 0))) {
+                // Odrzucenie zmian - przywrócenie oryginalnych wartości
+                editingIndex = -1;
+                ImGui::CloseCurrentPopup();
+            }
+            
+            ImGui::EndPopup();
+        }
+
         // Obsługa usuwania po pętli
         if (indexToDelete != -1) {
+            if (editingIndex == indexToDelete) {
+                editingIndex = -1;
+            } else if (editingIndex > indexToDelete) {
+                editingIndex--;
+            }
             functionList.erase(functionList.begin() + indexToDelete);
         }
 
-        // --- Informacje o zakresie ---
-        ImGui::SeparatorText("Aktualny Zakres");
+        ImGui::SeparatorText("Aktualny Zakres Wykresu");
         ImGui::Text("X: [%.2f, %.2f]", renderer.getXMin(), renderer.getXMax());
-        ImGui::Text("Y: [%.2f, %.2f] (Auto-Skalowanie)", renderer.getYMin(), renderer.getYMax());
+        ImGui::Text("Y: [%.2f, %.2f] (Stała siatka)", renderer.getYMin(), renderer.getYMax());
         
-        ImGui::End(); // Koniec Panelu Kontrolnego
+        ImGui::End();
     }
 };
 
 // --- Główna funkcja programu ---
 int main() {
-    // Ustawienie ziarna losowości dla różnych kolorów wykresów
-    srand(time(0));
+    srand(static_cast<unsigned int>(time(0)));
     
     FunctionVisualizer app;
     
