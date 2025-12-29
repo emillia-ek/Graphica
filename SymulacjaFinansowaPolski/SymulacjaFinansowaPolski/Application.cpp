@@ -9,6 +9,7 @@
 #include <memory>
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "MathExpressionParser.h" // Upewnij się, że ten plik jest załączony
 
 using namespace std;
 
@@ -43,11 +44,9 @@ bool Application::initGLFW() {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
-    // Store application instance for callbacks
     g_ApplicationInstance = this;
     glfwSetWindowUserPointer(window, this);
 
-    // Set callbacks
     glfwSetMouseButtonCallback(window, Application::mouseButtonCallback);
     glfwSetScrollCallback(window, Application::scrollCallback);
 
@@ -58,7 +57,6 @@ void Application::initImGui() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-
     ImGui::StyleColorsDark();
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -69,7 +67,6 @@ void Application::render() {
     if (isDragging) {
         double mouseX, mouseY;
         glfwGetCursorPos(window, &mouseX, &mouseY);
-
         int width, height;
         glfwGetWindowSize(window, &width, &height);
 
@@ -84,7 +81,6 @@ void Application::render() {
 
         rangeMin = xmin;
         rangeMax = xmax;
-
         lastMouseX = mouseX;
         lastMouseY = mouseY;
     }
@@ -116,46 +112,45 @@ void Application::render() {
         showHelp = !showHelp;
     }
 
-    ImGui::Text("Quick Add:");
-
-    if (ImGui::Button("y=x")) { strcpy(equationInput, "y=x"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
-    ImGui::SameLine();
-    if (ImGui::Button("y=sin(x)")) { strcpy(equationInput, "y=sin(x)"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
-    ImGui::SameLine();
-    if (ImGui::Button("y=x^2")) { strcpy(equationInput, "y=x^2"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
-
-    if (ImGui::Button("y=sin(2x)")) { strcpy(equationInput, "y=sin(2x)"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
-    ImGui::SameLine();
-    if (ImGui::Button("y=x/2")) { strcpy(equationInput, "y=x/2"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
-    ImGui::SameLine();
-    if (ImGui::Button("(x-2)^2+(y+1)^2=9")) { strcpy(equationInput, "(x-2)^2+(y+1)^2=9"); plotter.addFunction(equationInput); strcpy(equationInput, ""); }
-
     ImGui::Separator();
-
     auto& functions = plotter.getFunctions();
     ImGui::Text("Functions (%d):", static_cast<int>(functions.size()));
 
-    if (ImGui::BeginChild("FunctionList", ImVec2(0, 200), true)) {
+    if (ImGui::BeginChild("FunctionList", ImVec2(400, 250), true)) {
         for (size_t i = 0; i < functions.size(); i++) {
             ImGui::PushID(static_cast<int>(i));
 
-            ImGui::ColorEdit3("##color", (float*)&functions[i].color,
-                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
-            ImGui::SameLine();
+            // Sprawdzanie błędów dla aktualnej funkcji
+            MathExpressionParser checker;
+            checker.setExpression(functions[i].expression);
+            string errorMsg = checker.getErrorMessage();
 
+            // Wyświetlanie ikony błędu, jeśli występuje
+            if (!errorMsg.empty()) {
+                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "[!] ");
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("%s", errorMsg.c_str());
+                }
+                ImGui::SameLine();
+            }
+
+            ImGui::ColorEdit3("##color", (float*)&functions[i].color, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            ImGui::SameLine();
             ImGui::Checkbox("##enabled", &functions[i].enabled);
             ImGui::SameLine();
 
             if (functions[i].editing) {
-                ImGui::PushItemWidth(200);
                 char editBuffer[256];
                 strcpy(editBuffer, functions[i].editBuffer.c_str());
+                ImGui::PushItemWidth(150);
                 if (ImGui::InputText("##edit", editBuffer, IM_ARRAYSIZE(editBuffer))) {
                     functions[i].editBuffer = editBuffer;
                 }
                 ImGui::PopItemWidth();
-                ImGui::SameLine();
+                
+                
 
+                ImGui::SameLine();
                 if (ImGui::Button("V")) {
                     functions[i].applyEdit();
                     plotter.editFunction(static_cast<int>(i), functions[i].expression);
@@ -164,147 +159,82 @@ void Application::render() {
                 if (ImGui::Button("X")) {
                     functions[i].cancelEdit();
                 }
+                
+                // Walidacja błędu na żywo podczas edycji
+                MathExpressionParser live;
+                live.setExpression(functions[i].editBuffer);
+                if (!live.getErrorMessage().empty()) {
+                    ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Error: %s", live.getErrorMessage().substr(0, 30).c_str());
+                }
             } else {
                 ImGui::Text("%s", functions[i].expression.c_str());
                 ImGui::SameLine();
-
                 if (ImGui::Button("Edit")) {
                     functions[i].startEditing();
                 }
                 ImGui::SameLine();
-
                 if (ImGui::Button("X")) {
                     plotter.removeFunction(static_cast<int>(i));
                     ImGui::PopID();
                     break;
                 }
             }
-
             ImGui::PopID();
         }
     }
     ImGui::EndChild();
 
-    if (ImGui::Button("Clear All")) {
-        plotter.clear();
-    }
+    if (ImGui::Button("Clear All")) { plotter.clear(); }
 
     ImGui::Separator();
-
-    // Zoom buttons section
     ImGui::Text("Zoom Controls:");
-
-    ImGui::Columns(2, "zoomcols", false);
-    ImGui::SetColumnWidth(0, 150);
-
-    // Zoom in button
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.7f, 0.3f, 1.0f));
-    if (ImGui::Button("Zoom In (+)", ImVec2(120, 30))) {
+    if (ImGui::Button("Zoom In (+)", ImVec2(120, 25))) {
         float xmin, xmax, ymin, ymax;
         coordSystem.getViewRange(xmin, xmax, ymin, ymax);
-        float centerX = (xmin + xmax) / 2.0f;
-        float centerY = (ymin + ymax) / 2.0f;
-
-        // Zoom in by 20%
-        coordSystem.zoom(0.8f, centerX, centerY);
+        coordSystem.zoom(0.8f, (xmin + xmax) / 2.0f, (ymin + ymax) / 2.0f);
         coordSystem.getViewRange(xmin, xmax, ymin, ymax);
         plotter.setRange(xmin, xmax);
-        rangeMin = xmin;
-        rangeMax = xmax;
+        rangeMin = xmin; rangeMax = xmax;
     }
-    ImGui::PopStyleColor(2);
-
-    ImGui::NextColumn();
-
-    // Zoom out button
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.2f, 0.2f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.7f, 0.3f, 0.3f, 1.0f));
-    if (ImGui::Button("Zoom Out (-)", ImVec2(120, 30))) {
+    ImGui::SameLine();
+    if (ImGui::Button("Zoom Out (-)", ImVec2(120, 25))) {
         float xmin, xmax, ymin, ymax;
         coordSystem.getViewRange(xmin, xmax, ymin, ymax);
-        float centerX = (xmin + xmax) / 2.0f;
-        float centerY = (ymin + ymax) / 2.0f;
-
-        // Zoom out by 20%
-        coordSystem.zoom(1.2f, centerX, centerY);
+        coordSystem.zoom(1.2f, (xmin + xmax) / 2.0f, (ymin + ymax) / 2.0f);
         coordSystem.getViewRange(xmin, xmax, ymin, ymax);
         plotter.setRange(xmin, xmax);
-        rangeMin = xmin;
-        rangeMax = xmax;
+        rangeMin = xmin; rangeMax = xmax;
     }
-    ImGui::PopStyleColor(2);
-
-    ImGui::Columns(1);
 
     ImGui::Separator();
-    ImGui::Text("Graph Range:");
-
-    if (ImGui::InputFloat("X min", &rangeMin)) {}
-    if (ImGui::InputFloat("X max", &rangeMax)) {}
-
+    ImGui::InputFloat("X min", &rangeMin);
+    ImGui::InputFloat("X max", &rangeMax);
     if (ImGui::Button("Apply Range")) {
-        if (rangeMin >= rangeMax) {
-            swap(rangeMin, rangeMax);
-        }
+        if (rangeMin >= rangeMax) swap(rangeMin, rangeMax);
         plotter.setRange(rangeMin, rangeMax);
         coordSystem.setViewRange(rangeMin, rangeMax, -rangeMax, rangeMax);
     }
-
     ImGui::SameLine();
     if (ImGui::Button("Reset View")) {
-        rangeMin = -10.0f;
-        rangeMax = 10.0f;
+        rangeMin = -10.0f; rangeMax = 10.0f;
         plotter.setRange(rangeMin, rangeMax);
         coordSystem.resetView();
     }
-
-    ImGui::Separator();
-    ImGui::Text("Controls:");
-    ImGui::BulletText("Left drag: Pan (move the graph)");
-    ImGui::BulletText("+/- buttons: Zoom in/out (20% each click)");
-    ImGui::BulletText("Click 'Edit' to modify functions");
-    ImGui::BulletText("V to save, X to cancel editing");
-    ImGui::BulletText("Grid maintains 1:1 aspect ratio");
 
     ImGui::End();
 
     if (showHelp) {
         ImGui::Begin("Help - Supported Functions", &showHelp, ImGuiWindowFlags_AlwaysAutoResize);
-
-        ImGui::Text("SUPPORTED FUNCTIONS:");
-        ImGui::Separator();
-        ImGui::BulletText("Basic: y=x, y=x^2, y=2*x+3");
-        ImGui::BulletText("Flipping: y=-f(x) for any f(x)");
-        ImGui::BulletText("Fractions: y=x/2, y=(x+1)/3, y=1/2*x");
-        ImGui::BulletText("Trig: sin(x), cos(x), tan(x), cot(x)");
-        ImGui::BulletText("Exponential: y=e^x, y=2^x");
-        ImGui::BulletText("Logarithmic: y=ln(x), y=log(x)");
-        ImGui::BulletText("Circles: x^2+y^2=r^2, (x-a)^2+(y-b)^2=r^2");
-        ImGui::BulletText("Lines: x=c, y=c");
-        ImGui::BulletText("Polynomials: y=x^3-2x, y=x^4+3x^2-1");
-        ImGui::BulletText("Implicit multiplication: y=sin(2x), y=2sin(x)");
-
-        ImGui::Separator();
-        ImGui::Text("EXAMPLES:");
-        ImGui::BulletText("y=x^2 (parabola)");
-        ImGui::BulletText("y=sin(x) (sine wave)");
-        ImGui::BulletText("y=sin(2x) (compressed sine wave)");
-        ImGui::BulletText("y=-x^2 (flipped parabola)");
-        ImGui::BulletText("y=x/2 (line with slope 0.5)");
-        ImGui::BulletText("(x-2)^2+(y+1)^2=9 (circle at (2,-1) radius 3)");
-
-        ImGui::Separator();
-        if (ImGui::Button("Close Help")) {
-            showHelp = false;
-        }
-
+        ImGui::BulletText("Basic: y=x^2, y=2*x+3");
+        ImGui::BulletText("Trig: sin(x), cos(x), tan(x)");
+        ImGui::BulletText("Math: ln(x), log(x), e^x, abs(x)");
+        ImGui::BulletText("Special: x=5 (vertical), x^2+y^2=9 (circle)");
+        if (ImGui::Button("Close Help")) showHelp = false;
         ImGui::End();
     }
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
     glfwSwapBuffers(window);
 }
 
@@ -312,28 +242,22 @@ void Application::cleanup() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
-
     if (window) {
         glfwDestroyWindow(window);
         window = nullptr;
     }
     glfwTerminate();
-
     g_ApplicationInstance = nullptr;
 }
 
 void Application::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
-    if (app) {
-        app->onMouseButton(button, action, mods);
-    }
+    if (app) app->onMouseButton(button, action, mods);
 }
 
 void Application::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
-    if (app) {
-        app->onScroll(xoffset, yoffset);
-    }
+    if (app) app->onScroll(xoffset, yoffset);
 }
 
 void Application::onMouseButton(int button, int action, int mods) {
@@ -345,29 +269,18 @@ void Application::onMouseButton(int button, int action, int mods) {
             isDragging = false;
         }
     }
-    (void)mods;
 }
 
 void Application::onScroll(double xoffset, double yoffset) {
-    // Optional: You can keep this empty or implement scroll zoom if needed
-    (void)xoffset;
-    (void)yoffset;
+    (void)xoffset; (void)yoffset;
 }
 
 int Application::run() {
     if (!initGLFW()) return -1;
-
     initImGui();
 
-    // Initial setup
     plotter.setRange(rangeMin, rangeMax);
     coordSystem.setViewRange(rangeMin, rangeMax, -rangeMax, rangeMax);
-
-    // Add some example functions
-    plotter.addFunction("y=x");
-    plotter.addFunction("y=sin(x)");
-    plotter.addFunction("y=x^2");
-    plotter.addFunction("(x-2)^2+(y+1)^2=9");
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();

@@ -7,11 +7,11 @@ class CoordinateSystem {
 private:
     float viewXMin, viewXMax, viewYMin, viewYMax;
     float baseXMin, baseXMax, baseYMin, baseYMax;
-
+    float lastViewLeft, lastViewRight, lastViewBottom, lastViewTop;
     float getSpacing(float range);
-    void drawArrows();
+    void drawArrows(float viewLeft, float viewRight, float viewBottom, float viewTop);
     void drawAxisLabels(float xSpacing, float ySpacing);
-
+    
 public:
     CoordinateSystem();
     void draw(GLFWwindow* window);  // CHANGED: Take window as parameter
