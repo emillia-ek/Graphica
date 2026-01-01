@@ -5,7 +5,6 @@
 #include <stdexcept>
 #include <sstream>
 
-// Wymagane dla M_PI i M_E (stałe matematyczne)
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -14,14 +13,9 @@
 #endif
 
 using namespace std;
-
-// --- Implementacja klasy MathExpressionParser ---
-
 MathExpressionParser::MathExpressionParser() : type(UNKNOWN), verticalLineX(0.0f), horizontalLineY(0.0f),
                                              circleCenterX(0.0f), circleCenterY(0.0f), circleRadius(1.0f),
                                              isCircle(false), errorMessage("") {}
-
-// --- Narzędzia String ---
 
 string MathExpressionParser::removeWhitespace(const string& str) {
     string result;
@@ -49,7 +43,7 @@ void MathExpressionParser::replaceAll(string& str, const string& from, const str
     }
 }
 
-// --- Walidacja i Normalizacja ---
+// Walidacja i Normalizacja
 
 bool MathExpressionParser::isValidCharacter(char c) {
     return isalnum(c) || isspace(c) || c == '+' || c == '-' || c == '*' || c == '/' ||
@@ -58,23 +52,24 @@ bool MathExpressionParser::isValidCharacter(char c) {
 
 void MathExpressionParser::normalizeExpression(string& expr) {
     
-    // 1. Obsługa wartości bezwzględnej |...| -> abs(...)
-    replaceAll(expr, "|", "abs(");
-    
-    // Uproszczona zmiana zamykającej | na )
-    size_t pos = 0;
-    while ((pos = expr.find("abs(", pos)) != string::npos) {
-        size_t endAbs = expr.find("abs(", pos + 1);
-        size_t closingParen = expr.find(")", pos + 4);
-        
-        if (closingParen != string::npos && (endAbs == string::npos || closingParen < endAbs)) {
-             pos = closingParen + 1;
-        } else {
-             pos += 4;
+    //Obsługa wartości bezwzględnej
+    string result = "";
+        bool opening = true;
+        for (size_t i = 0; i < expr.length(); ++i) {
+            if (expr[i] == '|') {
+                if (opening) result += "abs(";
+                else result += ")";
+                opening = !opening;
+            } else {
+                result += expr[i];
+            }
         }
-    }
+        if (!opening) {
+            result += ")";
+        }
+        expr = result;
     
-    // 2. Wykrywanie okręgu
+    //Wykrywanie okręgu
     if ((contains(expr, "(x") && contains(expr, ")^2") &&
         contains(expr, "(y") && contains(expr, ")^2") &&
         contains(expr, "=")) ||
@@ -83,20 +78,21 @@ void MathExpressionParser::normalizeExpression(string& expr) {
         return;
     }
 
-    // 3. Normalizacja y= / f(x)=
+    //Normalizacja y= / f(x)=
     if (expr.find("f(x)=") == 0) {
         expr = "y=" + expr.substr(5);
     } else if (expr.find("f(x)") == 0 && expr.length() > 4) {
         expr = "y=" + expr.substr(4);
     }
 
-    // 4. Linie poziome y = stała
+    //Linie poziome y = stała
     if (expr.find("y=") == 0) {
         string afterEqual = expr.substr(2);
-        if (!contains(afterEqual, "x") && !contains(afterEqual, "sin") && !contains(afterEqual, "cos") &&
+        if (!contains(afterEqual, "x") &&
+            !contains(afterEqual, "sin") && !contains(afterEqual, "cos") &&
             !contains(afterEqual, "tan") && !contains(afterEqual, "cot") &&
             !contains(afterEqual, "log") && !contains(afterEqual, "ln") &&
-            !contains(afterEqual, "exp") && !contains(afterEqual, "e^")) {
+            !contains(afterEqual, "abs") && !contains(afterEqual, "exp")) {
             try {
                 horizontalLineY = stof(afterEqual);
                 type = HORIZONTAL_LINE;
@@ -340,36 +336,44 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
         if (!errorMessage.empty() || isnan(leftVal) || isnan(rightVal)) return NAN;
 
         if (mulDivOp == '/') {
-            if (fabs(rightVal) < 0.000001f) {
-                errorMessage = "Blad matematyczny: Dzielenie przez zero.";
-                return NAN;
+                float leftVal = parseExpression(x, left);
+                float rightVal = parseExpression(x, right);
+                if (fabs(rightVal) < 0.000001f) {
+                    errorMessage = "Blad matematyczny: Dzielenie przez zero.";
+                    return NAN;
+                }
+                return leftVal / rightVal;
             }
-            return leftVal / rightVal;
-        } else {
-            return leftVal * rightVal;
-        }
     }
     
-    // --- 3. Mnożenie implikowane ---
-    for (size_t i = 0; i < trimmed.length() - 1; i++) {
-        char current = trimmed[i];
-        char next = trimmed[i + 1];
+    // Mnożenie implikowane
+        for (size_t i = 0; i < trimmed.length() - 1; i++) {
+            char current = trimmed[i];
+            char next = trimmed[i + 1];
 
-        bool shouldMultiply = (isdigit(current) && (isalpha(next) || next == '(')) ||
-                             (current == ')' && (isalpha(next) || isdigit(next) || next == '(')) ||
-                             (current == 'x' && (isdigit(next) || isalpha(next) || next == '('));
+            // 1. Liczba przed nawiasem lub zmienną: 2(x), 2x, 2sin
+            // 2. x przed nawiasem lub funkcją: x(sin)
+            // 3. Nawias zamykający przed liczbą, zmienną lub otwierającym: )2, )x, )(
+            bool shouldMultiply =
+                (isdigit(current) && (next == 'x' || next == '(' || isalpha(next))) ||
+                (current == 'x' && (next == '(' || isalpha(next) || isdigit(next))) ||
+                (current == ')' && (isdigit(next) || next == 'x' || next == '(' || isalpha(next)));
 
-        if (shouldMultiply) {
-            string left = trimmed.substr(0, i + 1);
-            string right = trimmed.substr(i + 1);
-            float leftVal = parseExpression(x, left);
-            float rightVal = parseExpression(x, right);
-            if (!errorMessage.empty() || isnan(leftVal) || isnan(rightVal)) return NAN;
-            return leftVal * rightVal;
+            if (shouldMultiply) {
+                // Sprawdzenie, czy nie jesteśmy w środku nazwy funkcji
+                if (isalpha(current) && isalpha(next)) {
+                    continue;
+                }
+
+                string left = trimmed.substr(0, i + 1);
+                string right = trimmed.substr(i + 1);
+                
+                float lVal = parseExpression(x, left);
+                float rVal = parseExpression(x, right);
+                return lVal * rVal;
+            }
         }
-    }
-
-    // --- 4. Potęgowanie ---
+    // 4. Potęgowanie
     size_t maxPos = string::npos;
     parenCount = 0;
     for (size_t i = trimmed.length() - 1; i > 0; i--) {
@@ -397,59 +401,74 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
         return pow(base, exponent);
     }
     
-    // --- 5. Funkcje unarne ---
-    if (contains(trimmed, "abs(")) {
-        size_t start = trimmed.find("abs(") + 4;
-        size_t end = findMatchingParen(trimmed, start - 1);
-        float val = parseExpression(x, trimmed.substr(start, end - start));
-        return fabs(val);
-    }
-    if (contains(trimmed, "tan(")) {
-        size_t start = trimmed.find("tan(") + 4;
-        size_t end = findMatchingParen(trimmed, start - 1);
-        float val = parseExpression(x, trimmed.substr(start, end - start));
-        if (fabs(cos(val)) < 0.0001f) { errorMessage = "Blad: Asymptota tangensa."; return NAN; }
-        return tan(val);
-    }
-    if (contains(trimmed, "cot(")) {
-        size_t start = trimmed.find("cot(") + 4;
-        size_t end = findMatchingParen(trimmed, start - 1);
-        float val = parseExpression(x, trimmed.substr(start, end - start));
-        if (fabs(sin(val)) < 0.0001f) { errorMessage = "Blad: Asymptota cotangensa."; return NAN; }
-        return cos(val) / sin(val);
-    }
-    if (contains(trimmed, "ln(")) {
-        size_t start = trimmed.find("ln(") + 3;
-        size_t end = findMatchingParen(trimmed, start - 1);
-        float val = parseExpression(x, trimmed.substr(start, end - start));
-        if (val <= 0) { errorMessage = "Blad matematyczny: ln() tylko dla liczb > 0."; return NAN; }
-        return log(val);
-    }
-    if (contains(trimmed, "log(")) {
-        size_t start = trimmed.find("log(") + 4;
-        size_t end = findMatchingParen(trimmed, start - 1);
-        float val = parseExpression(x, trimmed.substr(start, end - start));
-        if (val <= 0) { errorMessage = "Blad matematyczny: log() tylko dla liczb > 0."; return NAN; }
-        return log10(val);
-    }
-    if (contains(trimmed, "sin(")) {
-        size_t start = trimmed.find("sin(") + 4;
-        size_t end = findMatchingParen(trimmed, start - 1);
-        return sin(parseExpression(x, trimmed.substr(start, end - start)));
-    }
-    if (contains(trimmed, "cos(")) {
-        size_t start = trimmed.find("cos(") + 4;
-        size_t end = findMatchingParen(trimmed, start - 1);
-        return cos(parseExpression(x, trimmed.substr(start, end - start)));
-    }
-    if (contains(trimmed, "exp(")) {
-        size_t start = trimmed.find("exp(") + 4;
-        size_t end = findMatchingParen(trimmed, start - 1);
-        return exp(parseExpression(x, trimmed.substr(start, end - start)));
-    }
-    if (trimmed.find("e^") == 0) {
-        return exp(parseExpression(x, trimmed.substr(2)));
-    }
+    // 5. Funkcje unarne
+        // Logarytm naturalny ln(x)
+    if (trimmed.find("ln(") == 0 && trimmed.back() == ')') {
+            size_t match = findMatchingParen(trimmed, 2);
+            if (match == trimmed.length() - 1) {
+                float val = parseExpression(x, trimmed.substr(3, trimmed.length() - 4));
+                if (val <= 0) { errorMessage = "Blad: logarytm <= 0"; return NAN; }
+                return log(val);
+            }
+        }
+
+        // Logarytm dziesiętny log(x)
+        if (trimmed.find("log(") == 0 && trimmed.back() == ')') {
+            size_t match = findMatchingParen(trimmed, 3);
+            if (match == trimmed.length() - 1) {
+                float val = parseExpression(x, trimmed.substr(4, trimmed.length() - 5));
+                if (val <= 0) { errorMessage = "Blad: log() tylko dla liczb > 0."; return NAN; }
+                return log10(val);
+            }
+        }
+
+        // Tangens tan(x) / tg(x)
+        if (trimmed.find("tan(") == 0 && trimmed.back() == ')') {
+            size_t match = findMatchingParen(trimmed, 3);
+            if (match == trimmed.length() - 1) {
+                float val = parseExpression(x, trimmed.substr(4, trimmed.length() - 5));
+                if (fabs(cos(val)) < 0.0001f) { errorMessage = "Blad: Asymptota tangensa."; return NAN; }
+                return tan(val);
+            }
+        }
+
+        // Sinus sin(x)
+        if (trimmed.find("sin(") == 0 && trimmed.back() == ')') {
+            size_t match = findMatchingParen(trimmed, 3);
+            if (match == trimmed.length() - 1) {
+                return sin(parseExpression(x, trimmed.substr(4, trimmed.length() - 5)));
+            }
+        }
+
+        // Cosinus cos(x)
+        if (trimmed.find("cos(") == 0 && trimmed.back() == ')') {
+            size_t match = findMatchingParen(trimmed, 3);
+            if (match == trimmed.length() - 1) {
+                return cos(parseExpression(x, trimmed.substr(4, trimmed.length() - 5)));
+            }
+        }
+
+        // Wartość bezwzględna abs(x)
+    if (trimmed.find("abs(") == 0 && trimmed.back() == ')') {
+            size_t match = findMatchingParen(trimmed, 3);
+            if (match == trimmed.length() - 1) {
+                string content = trimmed.substr(4, trimmed.length() - 5);
+                return fabs(parseExpression(x, content));
+            }
+        }
+    
+
+        // Funkcja wykładnicza exp(x) lub e^x
+        if (trimmed.find("exp(") == 0 && trimmed.back() == ')') {
+            size_t match = findMatchingParen(trimmed, 3);
+            if (match == trimmed.length() - 1) {
+                return exp(parseExpression(x, trimmed.substr(4, trimmed.length() - 5)));
+            }
+        }
+        
+        if (trimmed.find("e^") == 0) {
+            return exp(parseExpression(x, trimmed.substr(2)));
+        }
 
     if (trimmed == "x") return x;
     if (trimmed == "-x") return -x;
@@ -505,69 +524,47 @@ void MathExpressionParser::setExpression(const string& expr) {
 
     string processed = removeWhitespace(toLower(expr));
 
-    for (char c : processed) {
-        if (!isValidCharacter(c)) {
-            errorMessage = "Blad: Uzyto niedozwolonego symbolu.";
-            return;
-        }
-    }
-
-    string ops = "+*/^";
-    for (size_t i = 0; i < processed.length() - 1; i++) {
-        if (ops.find(processed[i]) != string::npos && ops.find(processed[i+1]) != string::npos) {
-            errorMessage = "Blad: Dwa operatory obok siebie.";
-            return;
-        }
-    }
-
-    int parenCount = 0;
-    for (char c : processed) {
-        if (c == '(') parenCount++;
-        else if (c == ')') parenCount--;
-        if (parenCount < 0) {
-            errorMessage = "Blad: Za duzo nawiasow zamykajacych.";
-            return;
-        }
-    }
-    if (parenCount != 0) {
-        errorMessage = "Blad: Niezamkniete nawiasy.";
+    // Sprawdzenie nawiasów i modułów PRZED normalizacją
+    int pipeCount = 0;
+    for (char c : processed) if (c == '|') pipeCount++;
+    if (pipeCount % 2 != 0) {
+        errorMessage = "Blad: Niezamkniete znaki wartosci bezwzglednej |.";
         return;
     }
 
     normalizeExpression(processed);
     expression = processed;
 
-    if (type == UNKNOWN && errorMessage.empty()) {
-        detectFunctionType();
+    // Sprawdzenie nawiasów PO normalizacji
+    int parenCount = 0;
+    for (char c : expression) {
+        if (c == '(') parenCount++;
+        else if (c == ')') parenCount--;
     }
-    
-    if (type != VERTICAL_LINE && type != CIRCLE && errorMessage.empty()) {
-        evaluate(0.0f);
+    if (parenCount != 0) {
+        errorMessage = "Blad: Niezamkniete nawiasy.";
+        return;
     }
 
-    if (type == VERTICAL_LINE) errorMessage = "";
-    if (type == CIRCLE && circleRadius > 0) errorMessage = "";
+    detectFunctionType();
+    
+    // USUNIĘTO: evaluate(0.0f) - to blokowało funkcje log i 1/x!
 }
 
 float MathExpressionParser::evaluate(float x) {
-    if (!errorMessage.empty() || type == UNKNOWN) return NAN;
-    if (type == VERTICAL_LINE || type == CIRCLE) return NAN;
-
-    if ((type == POLYNOMIAL || type == LINEAR || type == QUADRATIC) && !polynomialTerms.empty()) {
-        float result = 0.0f;
-        for (const auto& term : polynomialTerms) {
-            result += term.first * pow(x, term.second);
-        }
-        return result;
-    }
-
-    try {
-        float result = parseExpression(x, expression);
-        if (!errorMessage.empty() || isnan(result)) return NAN;
-        return result;
-    } catch (...) {
+    if (!errorMessage.empty() && errorMessage.find("Blad matematyczny") == string::npos &&
+        errorMessage.find("Blad:") == string::npos) {
         return NAN;
     }
+    //Czyścimy błędy matematyczne przed każdym punktem x
+    errorMessage = "";
+
+    float result = parseExpression(x, expression);
+    if (!errorMessage.empty()) {
+        return NAN;
+    }
+
+    return result;
 }
 
 FunctionType MathExpressionParser::getType() const { return type; }

@@ -5,9 +5,6 @@
 #include <vector>
 #include <utility>
 
-/**
- * Definicje typów funkcji
- */
 enum FunctionType {
     LINEAR,
     QUADRATIC,
@@ -23,7 +20,7 @@ enum FunctionType {
     HORIZONTAL_LINE,
     CIRCLE,
     CONSTANT_POWER,
-    UNKNOWN // Używany także do sygnalizowania błędu parsowania/składni
+    UNKNOWN
 };
 
 class MathExpressionParser {
@@ -31,7 +28,6 @@ private:
     std::string expression;
     FunctionType type;
     
-    // Używamy std::pair<współczynnik, wykładnik> dla wielomianów
     std::vector<std::pair<float, float>> polynomialTerms;
 
     float verticalLineX;
@@ -39,7 +35,7 @@ private:
     float circleCenterX, circleCenterY, circleRadius;
     bool isCircle;
     
-    std::string errorMessage; // Przechowuje komunikat o błędzie
+    std::string errorMessage;
 
     // Funkcje narzędziowe
     std::string removeWhitespace(const std::string& str);
@@ -78,9 +74,6 @@ public:
     bool isCircleEquation() const;
     void getCircleParams(float& cx, float& cy, float& r) const;
 
-    /**
-     * Zwraca szczegółowy komunikat o błędzie. Pusty string oznacza brak błędu.
-     */
     std::string getErrorMessage() const;
 };
 

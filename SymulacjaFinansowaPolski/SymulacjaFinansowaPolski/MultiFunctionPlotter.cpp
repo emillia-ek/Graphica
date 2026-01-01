@@ -30,7 +30,7 @@ void MultiFunctionPlotter::updateFunction(int index) {
     
     if (!parser.getErrorMessage().empty() && parser.getType() == UNKNOWN) return;
 
-    // 1. Linie pionowe (zawsze rysowane od góry do dołu)
+    // 1. Linie pionowe
     if (parser.getType() == VERTICAL_LINE) {
         float xValue = parser.getVerticalLineX();
         if (!isnan(xValue)) {
@@ -40,7 +40,7 @@ void MultiFunctionPlotter::updateFunction(int index) {
         return;
     }
 
-    // 2. Linie poziome (zawsze na pełną szerokość xMin -> xMax)
+    // 2. Linie poziome
     if (parser.getType() == HORIZONTAL_LINE) {
         float yValue = parser.getHorizontalLineY();
         if (!isnan(yValue)) {
@@ -62,31 +62,29 @@ void MultiFunctionPlotter::updateFunction(int index) {
         return;
     }
 
-    // 4. Standardowe funkcje - KLUCZOWA ZMIANA:
-    // Używamy zwiększonej rozdzielczości, aby przy dużym zoomie linia była gładka
+    //
     float step = (xMax - xMin) / (float)resolution;
 
     for (int i = 0; i <= resolution; ++i) {
-        // Obliczamy x dokładnie od lewej krawędzi (xMin) do prawej (xMax)
-        float x = xMin + i * step;
-        float y = parser.evaluate(x);
+            float x = xMin + i * step;
+            float y = parser.evaluate(x);
 
         if (!isnan(y) && !isinf(y)) {
-            if (!func.points.empty() && !isnan(func.points.back().x)) {
-                if (fabs(y - func.points.back().y) > 30.0f) {
+                if (!func.points.empty() && !isnan(func.points.back().y)) {
+                    float diff = fabs(y - func.points.back().y);
+                    if (diff > 30.0f || (y * func.points.back().y < 0 && diff > 10.0f)) {
+                        func.points.emplace_back(NAN, NAN);
+                    }
+                }
+                func.points.emplace_back(x, y);
+            } else {
+                if (!func.points.empty() && !isnan(func.points.back().x)) {
                     func.points.emplace_back(NAN, NAN);
                 }
             }
-            func.points.emplace_back(x, y);
-        } else {
-            if (!func.points.empty() && !isnan(func.points.back().x)) {
-                func.points.emplace_back(NAN, NAN);
-            }
         }
-    }
 }
 
-// Reszta metod pozostaje bez zmian (draw, setRange, addFunction itd.)
 
 void MultiFunctionPlotter::draw() {
     for (auto& func : functions) {
@@ -94,8 +92,6 @@ void MultiFunctionPlotter::draw() {
         glColor3f(func.color.x, func.color.y, func.color.z);
         glLineWidth(2.0f);
 
-        // Ponieważ updateFunction() jest wywoływane przy każdym przesunięciu,
-        // punkty w func.points zawsze odpowiadają aktualnemu xMin i xMax.
         glBegin(GL_LINE_STRIP);
         for (const auto& pt : func.points) {
             if (isnan(pt.x) || isnan(pt.y)) {
@@ -113,7 +109,7 @@ void MultiFunctionPlotter::draw() {
 void MultiFunctionPlotter::setRange(float min, float max) {
     xMin = min;
     xMax = max;
-    updateAllFunctions(); // To wymusza przeliczenie punktów dla nowego widoku
+    updateAllFunctions(); // wymusza przeliczenie punktów dla nowego widoku
 }
 
 void MultiFunctionPlotter::updateAllFunctions() {
