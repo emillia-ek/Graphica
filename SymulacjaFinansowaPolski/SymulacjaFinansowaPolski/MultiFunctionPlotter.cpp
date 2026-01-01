@@ -70,19 +70,18 @@ void MultiFunctionPlotter::updateFunction(int index) {
             float y = parser.evaluate(x);
 
         if (!isnan(y) && !isinf(y)) {
-                if (!func.points.empty() && !isnan(func.points.back().y)) {
-                    float diff = fabs(y - func.points.back().y);
-                    if (diff > 30.0f || (y * func.points.back().y < 0 && diff > 10.0f)) {
-                        func.points.emplace_back(NAN, NAN);
-                    }
-                }
-                func.points.emplace_back(x, y);
-            } else {
-                if (!func.points.empty() && !isnan(func.points.back().x)) {
+            if (!func.points.empty() && !isnan(func.points.back().y)) {
+                if (fabs(y - func.points.back().y) > 1.9f) {
                     func.points.emplace_back(NAN, NAN);
                 }
             }
+            func.points.emplace_back(x, y);
+        } else {
+            if (!func.points.empty() && !isnan(func.points.back().x)) {
+                func.points.emplace_back(NAN, NAN);
+            }
         }
+    }
 }
 
 

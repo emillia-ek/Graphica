@@ -347,30 +347,29 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
     }
     
     // Mnożenie implikowane
+    int pCount = 0;
         for (size_t i = 0; i < trimmed.length() - 1; i++) {
-            char current = trimmed[i];
-            char next = trimmed[i + 1];
+            char c = trimmed[i];
+            if (c == '(') pCount++;
+            else if (c == ')') pCount--;
 
-            // 1. Liczba przed nawiasem lub zmienną: 2(x), 2x, 2sin
-            // 2. x przed nawiasem lub funkcją: x(sin)
-            // 3. Nawias zamykający przed liczbą, zmienną lub otwierającym: )2, )x, )(
-            bool shouldMultiply =
-                (isdigit(current) && (next == 'x' || next == '(' || isalpha(next))) ||
-                (current == 'x' && (next == '(' || isalpha(next) || isdigit(next))) ||
-                (current == ')' && (isdigit(next) || next == 'x' || next == '(' || isalpha(next)));
+            // Mnożenie sprawdzamy poza nawiasami funkcji
+            if (pCount == 0) {
+                char current = trimmed[i];
+                char next = trimmed[i + 1];
 
-            if (shouldMultiply) {
-                // Sprawdzenie, czy nie jesteśmy w środku nazwy funkcji
-                if (isalpha(current) && isalpha(next)) {
-                    continue;
+                bool shouldMultiply = (isdigit(current) && (isalpha(next) || next == '(')) ||
+                                     (current == ')' && (isdigit(next) || isalpha(next) || next == '(')) ||
+                                     (current == 'x' && (isdigit(next) || isalpha(next) || next == '('));
+
+                if (shouldMultiply) {
+                    // Sprawdzenie, by nie rozbijać nazw funkcji (np. s-in)
+                    if (isalpha(current) && isalpha(next)) continue;
+
+                    string left = trimmed.substr(0, i + 1);
+                    string right = trimmed.substr(i + 1);
+                    return parseExpression(x, left) * parseExpression(x, right);
                 }
-
-                string left = trimmed.substr(0, i + 1);
-                string right = trimmed.substr(i + 1);
-                
-                float lVal = parseExpression(x, left);
-                float rVal = parseExpression(x, right);
-                return lVal * rVal;
             }
         }
     // 4. Potęgowanie
@@ -402,7 +401,6 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
     }
     
     // 5. Funkcje unarne
-        // Logarytm naturalny ln(x)
     if (trimmed.find("ln(") == 0 && trimmed.back() == ')') {
             size_t match = findMatchingParen(trimmed, 2);
             if (match == trimmed.length() - 1) {
@@ -412,7 +410,6 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
             }
         }
 
-        // Logarytm dziesiętny log(x)
         if (trimmed.find("log(") == 0 && trimmed.back() == ')') {
             size_t match = findMatchingParen(trimmed, 3);
             if (match == trimmed.length() - 1) {
@@ -422,7 +419,6 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
             }
         }
 
-        // Tangens tan(x) / tg(x)
         if (trimmed.find("tan(") == 0 && trimmed.back() == ')') {
             size_t match = findMatchingParen(trimmed, 3);
             if (match == trimmed.length() - 1) {
@@ -432,7 +428,6 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
             }
         }
 
-        // Sinus sin(x)
         if (trimmed.find("sin(") == 0 && trimmed.back() == ')') {
             size_t match = findMatchingParen(trimmed, 3);
             if (match == trimmed.length() - 1) {
@@ -440,7 +435,6 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
             }
         }
 
-        // Cosinus cos(x)
         if (trimmed.find("cos(") == 0 && trimmed.back() == ')') {
             size_t match = findMatchingParen(trimmed, 3);
             if (match == trimmed.length() - 1) {
@@ -448,7 +442,6 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
             }
         }
 
-        // Wartość bezwzględna abs(x)
     if (trimmed.find("abs(") == 0 && trimmed.back() == ')') {
             size_t match = findMatchingParen(trimmed, 3);
             if (match == trimmed.length() - 1) {
@@ -457,8 +450,6 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
             }
         }
     
-
-        // Funkcja wykładnicza exp(x) lub e^x
         if (trimmed.find("exp(") == 0 && trimmed.back() == ')') {
             size_t match = findMatchingParen(trimmed, 3);
             if (match == trimmed.length() - 1) {
@@ -496,6 +487,7 @@ size_t MathExpressionParser::findMatchingParen(const string& str, size_t start) 
 }
 
 void MathExpressionParser::detectFunctionType() {
+    if (type != UNKNOWN) return;
     string expr = expression;
     if (isCircle) return;
     if (!contains(expr, "x")) { type = HORIZONTAL_LINE; return; }
@@ -524,7 +516,7 @@ void MathExpressionParser::setExpression(const string& expr) {
 
     string processed = removeWhitespace(toLower(expr));
 
-    // Sprawdzenie nawiasów i modułów PRZED normalizacją
+    // Sprawdzenie nawiasów i modułów przed normalizacją
     int pipeCount = 0;
     for (char c : processed) if (c == '|') pipeCount++;
     if (pipeCount % 2 != 0) {
@@ -535,7 +527,7 @@ void MathExpressionParser::setExpression(const string& expr) {
     normalizeExpression(processed);
     expression = processed;
 
-    // Sprawdzenie nawiasów PO normalizacji
+    // Sprawdzenie nawiasów po normalizacji
     int parenCount = 0;
     for (char c : expression) {
         if (c == '(') parenCount++;
@@ -548,7 +540,6 @@ void MathExpressionParser::setExpression(const string& expr) {
 
     detectFunctionType();
     
-    // USUNIĘTO: evaluate(0.0f) - to blokowało funkcje log i 1/x!
 }
 
 float MathExpressionParser::evaluate(float x) {
