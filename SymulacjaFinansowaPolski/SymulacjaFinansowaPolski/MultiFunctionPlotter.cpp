@@ -30,7 +30,7 @@ void MultiFunctionPlotter::updateFunction(int index) {
     
     if (!parser.getErrorMessage().empty() && parser.getType() == UNKNOWN) return;
 
-    // 1. Linie pionowe
+    // Linie pionowe
     if (parser.getType() == VERTICAL_LINE) {
         float xValue = parser.getVerticalLineX();
         if (!isnan(xValue)) {
@@ -40,7 +40,7 @@ void MultiFunctionPlotter::updateFunction(int index) {
         return;
     }
 
-    // 2. Linie poziome
+    // Linie poziome
     if (parser.getType() == HORIZONTAL_LINE) {
         float yValue = parser.getHorizontalLineY();
         if (!isnan(yValue)) {
@@ -50,7 +50,7 @@ void MultiFunctionPlotter::updateFunction(int index) {
         return;
     }
 
-    // 3. Okręgi
+    // Okręgi
     if (parser.isCircleEquation()) {
         float cx, cy, r;
         parser.getCircleParams(cx, cy, r);
@@ -62,7 +62,6 @@ void MultiFunctionPlotter::updateFunction(int index) {
         return;
     }
 
-    //
     float step = (xMax - xMin) / (float)resolution;
 
     for (int i = 0; i <= resolution; ++i) {
@@ -108,7 +107,7 @@ void MultiFunctionPlotter::draw() {
 void MultiFunctionPlotter::setRange(float min, float max) {
     xMin = min;
     xMax = max;
-    updateAllFunctions(); // wymusza przeliczenie punktów dla nowego widoku
+    updateAllFunctions();
 }
 
 void MultiFunctionPlotter::updateAllFunctions() {

@@ -14,7 +14,7 @@ private:
     
 public:
     CoordinateSystem();
-    void draw(GLFWwindow* window);  // CHANGED: Take window as parameter
+    void draw(GLFWwindow* window);
     void setViewRange(float xmin, float xmax, float ymin, float ymax);
     void zoom(float factor, float centerX, float centerY);
     void pan(float dx, float dy);

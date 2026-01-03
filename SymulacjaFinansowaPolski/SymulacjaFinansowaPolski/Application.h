@@ -8,31 +8,25 @@
 
 class Application {
 private:
-    // GLFW window
     GLFWwindow* window;
 
-    // Core components
     MultiFunctionPlotter plotter;
     CoordinateSystem coordSystem;
 
-    // UI state
     char equationInput[256];
     float rangeMin, rangeMax;
     bool showHelp;
     bool isDragging;
     double lastMouseX, lastMouseY;
 
-    // Private methods
     bool initGLFW();
     void initImGui();
     void render();
     void cleanup();
 
-    // Static callback wrappers
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
-    // Instance callback handlers
     void onMouseButton(int button, int action, int mods);
     void onScroll(double xoffset, double yoffset);
 

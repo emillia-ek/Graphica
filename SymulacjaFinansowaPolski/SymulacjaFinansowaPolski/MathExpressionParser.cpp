@@ -98,11 +98,11 @@ void MathExpressionParser::normalizeExpression(string& expr) {
                 type = HORIZONTAL_LINE;
                 expr = "horizontal";
                 return;
-            } catch (...) { /* Kontynuuj parsowanie */ }
+            } catch (...) {}
         }
     }
 
-    // 5. Linie pionowe x = stała
+    // Linie pionowe x = stała
     if (expr.find("x=") == 0) {
         size_t eqPos = expr.find('=');
         if (eqPos != string::npos) {
@@ -114,7 +114,7 @@ void MathExpressionParser::normalizeExpression(string& expr) {
                     type = VERTICAL_LINE;
                     expr = "vertical";
                     return;
-                } catch (...) { /* Kontynuuj parsowanie */ }
+                } catch (...) {}
             }
         }
     }
@@ -283,7 +283,7 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
         }
     }
     
-    // --- 1. Dodawanie/Odejmowanie ---
+    //Dodawanie/Odejmowanie
     int parenCount = 0;
     size_t opPos = string::npos;
     char op = '+';
@@ -311,7 +311,7 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
         return (op == '+') ? leftVal + rightVal : leftVal - rightVal;
     }
 
-    // --- 2. Mnożenie/Dzielenie ---
+    //Mnożenie/Dzielenie
     parenCount = 0;
     opPos = string::npos;
     char mulDivOp = ' ';
@@ -372,7 +372,7 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
                 }
             }
         }
-    // 4. Potęgowanie
+    //Potęgowanie
     size_t maxPos = string::npos;
     parenCount = 0;
     for (size_t i = trimmed.length() - 1; i > 0; i--) {
@@ -400,7 +400,7 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
         return pow(base, exponent);
     }
     
-    // 5. Funkcje unarne
+    
     if (trimmed.find("ln(") == 0 && trimmed.back() == ')') {
             size_t match = findMatchingParen(trimmed, 2);
             if (match == trimmed.length() - 1) {
@@ -516,7 +516,6 @@ void MathExpressionParser::setExpression(const string& expr) {
 
     string processed = removeWhitespace(toLower(expr));
 
-    // Sprawdzenie nawiasów i modułów przed normalizacją
     int pipeCount = 0;
     for (char c : processed) if (c == '|') pipeCount++;
     if (pipeCount % 2 != 0) {
@@ -527,7 +526,6 @@ void MathExpressionParser::setExpression(const string& expr) {
     normalizeExpression(processed);
     expression = processed;
 
-    // Sprawdzenie nawiasów po normalizacji
     int parenCount = 0;
     for (char c : expression) {
         if (c == '(') parenCount++;
@@ -547,7 +545,6 @@ float MathExpressionParser::evaluate(float x) {
         errorMessage.find("Blad:") == string::npos) {
         return NAN;
     }
-    //Czyścimy błędy matematyczne przed każdym punktem x
     errorMessage = "";
 
     float result = parseExpression(x, expression);

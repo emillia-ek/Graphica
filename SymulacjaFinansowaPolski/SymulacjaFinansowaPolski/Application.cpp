@@ -9,13 +9,12 @@
 #include <memory>
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "MathExpressionParser.h" // Upewnij się, że ten plik jest załączony
+#include "MathExpressionParser.h"
 
 using namespace std;
 
-// Static instance pointer for callbacks
-static Application* g_ApplicationInstance = nullptr;
 
+static Application* g_ApplicationInstance = nullptr;
 Application::Application() : window(nullptr), rangeMin(-10.0f), rangeMax(10.0f),
                             showHelp(false), isDragging(false), lastMouseX(0), lastMouseY(0) {
     strcpy(equationInput, "y=x");
@@ -125,7 +124,6 @@ void Application::render() {
             checker.setExpression(functions[i].expression);
             string errorMsg = checker.getErrorMessage();
 
-            // Wyświetlanie ikony błędu, jeśli występuje
             if (!errorMsg.empty()) {
                 ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "[!] ");
                 if (ImGui::IsItemHovered()) {
