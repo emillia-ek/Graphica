@@ -1,3 +1,0 @@
--x^2 not working, but -1x^2 working
-sin(2x) not working
-zoom do naprawienia

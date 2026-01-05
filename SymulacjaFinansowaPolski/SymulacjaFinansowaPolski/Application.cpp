@@ -111,6 +111,46 @@ void Application::render() {
         showHelp = !showHelp;
     }
 
+    // Add default functions buttons
+    ImGui::Text("Quick Add:");
+
+
+    if (ImGui::Button("y = x")) { plotter.addFunction("y=x"); }
+    ImGui::SameLine();
+    if (ImGui::Button("y = x^2")) { plotter.addFunction("y=x^2"); }
+    ImGui::SameLine();
+    if (ImGui::Button("y = x^3")) { plotter.addFunction("y=x^3"); }
+    ImGui::SameLine();
+    if (ImGui::Button("y = sin(x)")) { plotter.addFunction("y=sin(x)"); }
+    ImGui::SameLine();
+    if (ImGui::Button("y = cos(x)")) { plotter.addFunction("y=cos(x)"); }
+
+
+    if (ImGui::Button("y = tan(x)")) { plotter.addFunction("y=tan(x)"); }
+    ImGui::SameLine();
+    if (ImGui::Button("y = ctg(x)")) { plotter.addFunction("y=ctg(x)"); }
+    ImGui::SameLine();
+    if (ImGui::Button("y = e^x")) { plotter.addFunction("y=e^x"); }
+    ImGui::SameLine();
+    if (ImGui::Button("y = ln(x)")) { plotter.addFunction("y=ln(x)"); }
+    ImGui::SameLine();
+    if (ImGui::Button("y = sqrt(x)")) { plotter.addFunction("y=sqrt(x)"); }
+
+    if (ImGui::Button("y = abs(x)")) { plotter.addFunction("y=abs(x)"); }
+    ImGui::SameLine();
+
+    if (ImGui::Button("y = 1/x")) { plotter.addFunction("y=1/x"); }
+    ImGui::SameLine();
+    if (ImGui::Button("y = sin(x)/x")) { plotter.addFunction("y=sin(x)/x"); }
+    ImGui::SameLine();
+    if (ImGui::Button("x = 5")) { plotter.addFunction("x=5"); }
+    ImGui::SameLine();
+    if (ImGui::Button("x^2 + y^2 = 4")) { plotter.addFunction("x^2+y^2=4"); }
+
+    if (ImGui::Button("(x-2)^2 + (y+3)^2 = 3")) { plotter.addFunction("(x-2)^2 + (y+3)^2 = 3"); }
+    ImGui::SameLine();
+    if (ImGui::Button("y = 2x + 3")) { plotter.addFunction("y=2*x+3"); }
+
     ImGui::Separator();
     auto& functions = plotter.getFunctions();
     ImGui::Text("Functions (%d):", static_cast<int>(functions.size()));
@@ -145,8 +185,8 @@ void Application::render() {
                     functions[i].editBuffer = editBuffer;
                 }
                 ImGui::PopItemWidth();
-                
-                
+
+
 
                 ImGui::SameLine();
                 if (ImGui::Button("V")) {
@@ -157,7 +197,7 @@ void Application::render() {
                 if (ImGui::Button("X")) {
                     functions[i].cancelEdit();
                 }
-                
+
                 // Walidacja błędu na żywo podczas edycji
                 MathExpressionParser live;
                 live.setExpression(functions[i].editBuffer);
@@ -235,6 +275,7 @@ void Application::render() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     glfwSwapBuffers(window);
 }
+
 
 void Application::cleanup() {
     ImGui_ImplOpenGL3_Shutdown();

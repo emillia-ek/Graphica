@@ -3,69 +3,64 @@
 
 #include <string>
 #include <vector>
-#include <utility>
 
 enum FunctionType {
-    LINEAR,
-    QUADRATIC,
-    SIN,
-    COS,
-    TAN,
-    COT,
-    EXPONENTIAL,
-    LOGARITHMIC,
-    POLYNOMIAL,
-    POWER,
-    VERTICAL_LINE,
-    HORIZONTAL_LINE,
-    CIRCLE,
-    CONSTANT_POWER,
-    UNKNOWN
+    UNKNOWN, LINEAR, QUADRATIC, POLYNOMIAL, SIN, COS, TAN, COT,
+    LOGARITHMIC, EXPONENTIAL, HORIZONTAL_LINE, VERTICAL_LINE, CIRCLE
 };
 
 class MathExpressionParser {
-private:
-    std::string expression;
-    FunctionType type;
-    
-    std::vector<std::pair<float, float>> polynomialTerms;
-
-    float verticalLineX;
-    float horizontalLineY;
-    float circleCenterX, circleCenterY, circleRadius;
-    bool isCircle;
-    
-    std::string errorMessage;
-
-    std::string removeWhitespace(const std::string& str);
-    std::string toLower(const std::string& str);
-    bool contains(const std::string& str, const std::string& substr);
-    void replaceAll(std::string& str, const std::string& from, const std::string& to);
-    size_t findMatchingParen(const std::string& str, size_t start);
-    
-    bool isValidCharacter(char c);
-    void normalizeExpression(std::string& expr);
-    void parseCircleEquation(const std::string& expr);
-    void parsePolynomial(const std::string& expr);
-    
-    float parseExpression(float x, const std::string& expr);
-    
-    void detectFunctionType();
-
 public:
     MathExpressionParser();
+
     void setExpression(const std::string& expr);
-    
     float evaluate(float x);
-    
+
     FunctionType getType() const;
     std::string getExpression() const;
     float getVerticalLineX() const;
     float getHorizontalLineY() const;
     bool isCircleEquation() const;
     void getCircleParams(float& cx, float& cy, float& r) const;
-
     std::string getErrorMessage() const;
+
+private:
+    std::string removeWhitespace(const std::string& str);
+    std::string toLower(const std::string& str);
+    bool contains(const std::string& str, const std::string& substr);
+    void replaceAll(std::string& str, const std::string& from, const std::string& to);
+    bool isValidCharacter(char c);
+
+    void normalizeExpression(std::string& expr);
+    void parseCircleEquation(const std::string& expr);
+    void parseGeneralCircleEquation(const std::string& expr); // DODAJ TĘ LINIĘ
+    void parsePolynomial(const std::string& expr);
+    void detectFunctionType();
+
+    float parseExpression(float x, const std::string& expr);
+    size_t findMatchingParen(const std::string& str, size_t start);
+
+    std::string expression;
+    std::string errorMessage;
+    FunctionType type;
+
+    // Linie
+    float verticalLineX;
+    float horizontalLineY;
+
+    // Okrąg
+    float circleCenterX;
+    float circleCenterY;
+    float circleRadius;
+    bool isCircle;
+
+    // Wielomian
+    struct PolynomialTerm {
+        float coefficient;
+        float exponent;
+        PolynomialTerm(float c, float e) : coefficient(c), exponent(e) {}
+    };
+    std::vector<PolynomialTerm> polynomialTerms;
 };
 
-#endif // MATHEXPRESSIONPARSER_H
+#endif
