@@ -111,7 +111,6 @@ void Application::render() {
         showHelp = !showHelp;
     }
 
-    // Add default functions buttons
     ImGui::Text("Quick Add:");
 
 

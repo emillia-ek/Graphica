@@ -50,14 +50,11 @@ bool MathExpressionParser::isValidCharacter(char c) {
 }
 
 void MathExpressionParser::normalizeExpression(string& expr) {
-    // Najpierw zamień ctg na cot, aby uniknąć problemów z późniejszym parsowaniem
     replaceAll(expr, "ctg", "cot");
     replaceAll(expr, "tg", "tan");
 
-    // Zamień symbol pierwiastka √ na sqrt(
     replaceAll(expr, "√", "sqrt(");
 
-    // Obsługa wartości bezwzględnej
     string result = "";
     bool opening = true;
     for (size_t i = 0; i < expr.length(); ++i) {
@@ -74,10 +71,8 @@ void MathExpressionParser::normalizeExpression(string& expr) {
     }
     expr = result;
 
-    // Dodaj brakujące nawiasy zamykające dla sqrt
     size_t sqrtPos = expr.find("sqrt(");
     while (sqrtPos != string::npos) {
-        // Sprawdź czy za sqrt( nie ma już nawiasu zamykającego
         size_t openParen = sqrtPos + 4; // pozycja '(' w "sqrt("
         int parenCount = 1;
         size_t i = openParen + 1;
@@ -88,7 +83,6 @@ void MathExpressionParser::normalizeExpression(string& expr) {
             i++;
         }
 
-        // Jeśli nie znaleziono zamykającego nawiasu, dodaj go na końcu
         if (parenCount > 0) {
             expr += ")";
         }
@@ -96,7 +90,6 @@ void MathExpressionParser::normalizeExpression(string& expr) {
         sqrtPos = expr.find("sqrt(", i);
     }
 
-    // Uproszczone wykrywanie okręgów
     string lowExpr = toLower(expr);
 
     size_t eqPos = lowExpr.find('=');
@@ -175,14 +168,11 @@ void MathExpressionParser::parseCircleEquation(const string& expr) {
     circleRadius = 0.0f;
 
     try {
-        // Usuń wszystkie białe znaki
         string eq = expr;
         eq.erase(remove(eq.begin(), eq.end(), ' '), eq.end());
 
-        // Zamień ² na ^2
         replaceAll(eq, "²", "^2");
 
-        // Znajdź pozycję =
         size_t eqPos = eq.find('=');
         if (eqPos == string::npos) {
             errorMessage = "Brak znaku = w równaniu okręgu";
@@ -193,7 +183,6 @@ void MathExpressionParser::parseCircleEquation(const string& expr) {
         string left = eq.substr(0, eqPos);
         string right = eq.substr(eqPos + 1);
 
-        // Parsuj środek okręgu dla x
         size_t xStart = left.find("(x");
         if (xStart != string::npos) {
             size_t xEnd = left.find(")^2", xStart);
@@ -203,15 +192,14 @@ void MathExpressionParser::parseCircleEquation(const string& expr) {
                 if (xPart == "x") {
                     circleCenterX = 0.0f;
                 } else {
-                    // Format: x-a lub x+a
                     if (xPart.length() > 1) {
                         char sign = xPart[1]; // znak po x (- lub +)
-                        string valueStr = xPart.substr(2); // liczba po znaku
+                        string valueStr = xPart.substr(2);
 
                         try {
                             float value = stof(valueStr);
                             if (sign == '-') {
-                                circleCenterX = value; // (x-a)^2 -> środek w (a,?)
+                                circleCenterX = value;
                             } else if (sign == '+') {
                                 circleCenterX = -value; // (x+a)^2 -> środek w (-a,?)
                             }
@@ -222,31 +210,28 @@ void MathExpressionParser::parseCircleEquation(const string& expr) {
                 }
             }
         } else if (contains(left, "x^2")) {
-            // Format: x^2 (bez nawiasów)
             circleCenterX = 0.0f;
         }
 
-        // Parsuj środek okręgu dla y
         size_t yStart = left.find("(y");
         if (yStart != string::npos) {
             size_t yEnd = left.find(")^2", yStart);
             if (yEnd != string::npos) {
-                string yPart = left.substr(yStart + 1, yEnd - yStart - 1); // "y-b" lub "y+b" lub "y"
+                string yPart = left.substr(yStart + 1, yEnd - yStart - 1);
 
                 if (yPart == "y") {
                     circleCenterY = 0.0f;
                 } else {
-                    // Format: y-b lub y+b
                     if (yPart.length() > 1) {
-                        char sign = yPart[1]; // znak po y (- lub +)
-                        string valueStr = yPart.substr(2); // liczba po znaku
+                        char sign = yPart[1];
+                        string valueStr = yPart.substr(2);
 
                         try {
                             float value = stof(valueStr);
                             if (sign == '-') {
-                                circleCenterY = value; // (y-b)^2 -> środek w (?,b)
+                                circleCenterY = value;
                             } else if (sign == '+') {
-                                circleCenterY = -value; // (y+b)^2 -> środek w (?,-b)
+                                circleCenterY = -value;
                             }
                         } catch (...) {
                             circleCenterY = 0.0f;
@@ -255,17 +240,13 @@ void MathExpressionParser::parseCircleEquation(const string& expr) {
                 }
             }
         } else if (contains(left, "y^2")) {
-            // Format: y^2 (bez nawiasów)
             circleCenterY = 0.0f;
         }
 
-        // Parsuj promień
         try {
             float radiusSquared = 0.0f;
 
-            // Sprawdź czy prawa strona to liczba
             if (contains(right, "^")) {
-                // Format: r^2
                 size_t caretPos = right.find('^');
                 string baseStr = right.substr(0, caretPos);
                 string expStr = right.substr(caretPos + 1);
@@ -274,22 +255,19 @@ void MathExpressionParser::parseCircleEquation(const string& expr) {
                 float exponent = stof(expStr);
                 radiusSquared = pow(base, exponent);
             } else if (contains(right, "sqrt(")) {
-                // Format: sqrt(liczba)
                 size_t sqrtStart = right.find("sqrt(");
                 size_t sqrtEnd = right.find(")", sqrtStart);
                 if (sqrtEnd != string::npos) {
                     string sqrtArg = right.substr(sqrtStart + 5, sqrtEnd - (sqrtStart + 5));
                     float arg = stof(sqrtArg);
-                    radiusSquared = arg; // sqrt(r^2) = r, więc r^2 = (arg)^2
-                    circleRadius = sqrt(arg); // ale to już jest promień, nie kwadrat!
-                    // Pomijamy dalsze obliczenia, bo już mamy promień
+                    radiusSquared = arg;
+                    circleRadius = sqrt(arg);
                 } else {
                     errorMessage = "Błąd parsowania promienia okręgu z sqrt";
                     isCircle = false;
                     return;
                 }
             } else {
-                // Bezpośrednia liczba
                 radiusSquared = stof(right);
                 circleRadius = sqrt(radiusSquared);
             }
@@ -576,7 +554,7 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
         }
     }
 
-    // Obsługa ctg(x) - alternatywa dla cot(x)
+    // Obsługa ctg(x)
     if (trimmed.find("ctg(") == 0 && trimmed.back() == ')') {
         size_t match = findMatchingParen(trimmed, 3);
         if (match == trimmed.length() - 1) {
