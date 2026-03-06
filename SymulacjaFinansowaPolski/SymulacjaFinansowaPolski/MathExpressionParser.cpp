@@ -16,7 +16,7 @@ using namespace std;
 
 MathExpressionParser::MathExpressionParser() : type(UNKNOWN), verticalLineX(0.0f), horizontalLineY(0.0f),
                                              circleCenterX(0.0f), circleCenterY(0.0f), circleRadius(1.0f),
-                                             isCircle(false), errorMessage("") {}
+                                             isCircle(false), is3D(false), sphereRadius(1.0f), errorMessage("") {}
 
 string MathExpressionParser::removeWhitespace(const string& str) {
     string result;
@@ -97,6 +97,29 @@ void MathExpressionParser::normalizeExpression(string& expr) {
         string left = lowExpr.substr(0, eqPos);
         string right = lowExpr.substr(eqPos + 1);
 
+        // Sfera: x^2+y^2+z^2=R^2
+        if (lowExpr.find("x^2+y^2+z^2=") != string::npos) {
+            size_t zEqPos = lowExpr.find('=');
+            if (zEqPos != string::npos) {
+                string rStr = lowExpr.substr(zEqPos + 1);
+                try {
+                    sphereRadius = sqrt(stof(rStr));
+                    is3D = true;
+                    type = SPHERE_3D;
+                    errorMessage = "";
+                    return;
+                } catch(...) {}
+            }
+        }
+
+        // Stożek: x^2+y^2=z^2
+        if (lowExpr == "x^2+y^2=z^2" || lowExpr == "z^2=x^2+y^2") {
+            is3D = true;
+            type = CONE_3D;
+            errorMessage = "";
+            return;
+        }
+
         // Sprawdzamy czy mamy kwadraty x i y
         bool hasXSquare = (contains(left, "(x") && contains(left, ")^2")) ||
                          contains(left, "x^2") || contains(left, "x²");
@@ -111,11 +134,22 @@ void MathExpressionParser::normalizeExpression(string& expr) {
         }
     }
 
-    // Normalizacja y= / f(x)=
-    if (expr.find("f(x)=") == 0) {
+    // Normalizacja y= / f(x)= / z= / f(x,y)=
+    if (expr.find("f(x,y)=") == 0) {
+        expr = "z=" + expr.substr(7);
+    } else if (expr.find("f(x)=") == 0) {
         expr = "y=" + expr.substr(5);
     } else if (expr.find("f(x)") == 0 && expr.length() > 4) {
         expr = "y=" + expr.substr(4);
+    }
+
+
+
+    if (expr.find("z=") == 0) {
+        is3D = true;
+        expr = expr.substr(2);
+    } else {
+        is3D = false;
     }
 
     // Linie poziome y = stała
@@ -155,7 +189,7 @@ void MathExpressionParser::normalizeExpression(string& expr) {
     }
 
     // Usunięcie "y=" (dla normalnej funkcji)
-    if (expr.find("y=") == 0 && type != VERTICAL_LINE && type != HORIZONTAL_LINE && !isCircle) {
+    if (expr.find("y=") == 0 && type != VERTICAL_LINE && type != HORIZONTAL_LINE && !isCircle && !is3D) {
         expr = expr.substr(2);
     }
 }
@@ -366,7 +400,7 @@ void MathExpressionParser::parsePolynomial(const string& expr) {
     type = POLYNOMIAL;
 }
 
-float MathExpressionParser::parseExpression(float x, const string& expr) {
+float MathExpressionParser::parseExpression(float x, float y, const string& expr) {
     if (expr.empty()) return 0.0f;
     if (!errorMessage.empty()) return NAN;
 
@@ -376,7 +410,7 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
         trimmed = "0" + trimmed;
     }
 
-    // Usuń zewnętrzne nawiasy
+    // Usuń nawiasy 
     while (trimmed.length() > 2 && trimmed.front() == '(' && trimmed.back() == ')') {
         size_t match = findMatchingParen(trimmed, 0);
         if (match == trimmed.length() - 1) {
@@ -408,8 +442,8 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
     if (opPos != string::npos) {
         string left = trimmed.substr(0, opPos);
         string right = trimmed.substr(opPos + 1);
-        float leftVal = parseExpression(x, left);
-        float rightVal = parseExpression(x, right);
+        float leftVal = parseExpression(x, y, left);
+        float rightVal = parseExpression(x, y, right);
         if (!errorMessage.empty() || isnan(leftVal) || isnan(rightVal)) return NAN;
         return (op == '+') ? leftVal + rightVal : leftVal - rightVal;
     }
@@ -433,8 +467,8 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
     if (opPos != string::npos) {
         string left = trimmed.substr(0, opPos);
         string right = trimmed.substr(opPos + 1);
-        float leftVal = parseExpression(x, left);
-        float rightVal = parseExpression(x, right);
+        float leftVal = parseExpression(x, y, left);
+        float rightVal = parseExpression(x, y, right);
 
         if (!errorMessage.empty() || isnan(leftVal) || isnan(rightVal)) return NAN;
 
@@ -462,14 +496,14 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
 
             bool shouldMultiply = (isdigit(current) && (isalpha(next) || next == '(')) ||
                                  (current == ')' && (isdigit(next) || isalpha(next) || next == '(')) ||
-                                 (current == 'x' && (isdigit(next) || isalpha(next) || next == '('));
+                                 ((current == 'x' || current == 'y') && (isdigit(next) || isalpha(next) || next == '('));
 
             if (shouldMultiply) {
                 if (isalpha(current) && isalpha(next)) continue;
 
                 string left = trimmed.substr(0, i + 1);
                 string right = trimmed.substr(i + 1);
-                return parseExpression(x, left) * parseExpression(x, right);
+                return parseExpression(x, y, left) * parseExpression(x, y, right);
             }
         }
     }
@@ -490,8 +524,8 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
     if (maxPos != string::npos) {
         string left = trimmed.substr(0, maxPos);
         string right = trimmed.substr(maxPos + 1);
-        float base = parseExpression(x, left);
-        float exponent = parseExpression(x, right);
+        float base = parseExpression(x, y, left);
+        float exponent = parseExpression(x, y, right);
 
         if (!errorMessage.empty() || isnan(base) || isnan(exponent)) return NAN;
 
@@ -504,12 +538,12 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
 
     // Funkcje matematyczne
 
-    // Obsługa sqrt() - PIERWIASTEK KWADRATOWY
+    // Obsługa sqrt()
     if (trimmed.find("sqrt(") == 0 && trimmed.back() == ')') {
         size_t match = findMatchingParen(trimmed, 4); // "sqrt(" ma '(' na pozycji 4
         if (match == trimmed.length() - 1) {
             string content = trimmed.substr(5, trimmed.length() - 6); // pomiędzy ( i )
-            float val = parseExpression(x, content);
+            float val = parseExpression(x, y, content);
             if (val < 0) {
                 errorMessage = "Błąd: pierwiastek kwadratowy z liczby ujemnej.";
                 return NAN;
@@ -521,7 +555,7 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
     if (trimmed.find("ln(") == 0 && trimmed.back() == ')') {
         size_t match = findMatchingParen(trimmed, 2);
         if (match == trimmed.length() - 1) {
-            float val = parseExpression(x, trimmed.substr(3, trimmed.length() - 4));
+            float val = parseExpression(x, y, trimmed.substr(3, trimmed.length() - 4));
             if (val <= 0) {
                 errorMessage = "Błąd: logarytm naturalny z liczby <= 0";
                 return NAN;
@@ -533,7 +567,7 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
     if (trimmed.find("log(") == 0 && trimmed.back() == ')') {
         size_t match = findMatchingParen(trimmed, 3);
         if (match == trimmed.length() - 1) {
-            float val = parseExpression(x, trimmed.substr(4, trimmed.length() - 5));
+            float val = parseExpression(x, y, trimmed.substr(4, trimmed.length() - 5));
             if (val <= 0) {
                 errorMessage = "Błąd: logarytm dziesiętny z liczby <= 0.";
                 return NAN;
@@ -545,7 +579,7 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
     if (trimmed.find("tan(") == 0 && trimmed.back() == ')') {
         size_t match = findMatchingParen(trimmed, 3);
         if (match == trimmed.length() - 1) {
-            float val = parseExpression(x, trimmed.substr(4, trimmed.length() - 5));
+            float val = parseExpression(x, y, trimmed.substr(4, trimmed.length() - 5));
             if (fabs(cos(val)) < 0.0001f) {
                 errorMessage = "Błąd: Asymptota pionowa tangensa.";
                 return NAN;
@@ -558,7 +592,7 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
     if (trimmed.find("ctg(") == 0 && trimmed.back() == ')') {
         size_t match = findMatchingParen(trimmed, 3);
         if (match == trimmed.length() - 1) {
-            float val = parseExpression(x, trimmed.substr(4, trimmed.length() - 5));
+            float val = parseExpression(x, y, trimmed.substr(4, trimmed.length() - 5));
             float tanVal = tan(val);
             if (fabs(tanVal) < 0.000001f) {
                 errorMessage = "Błąd: Asymptota pionowa cotangensa.";
@@ -571,7 +605,7 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
     if (trimmed.find("cot(") == 0 && trimmed.back() == ')') {
         size_t match = findMatchingParen(trimmed, 3);
         if (match == trimmed.length() - 1) {
-            float val = parseExpression(x, trimmed.substr(4, trimmed.length() - 5));
+            float val = parseExpression(x, y, trimmed.substr(4, trimmed.length() - 5));
             float tanVal = tan(val);
             if (fabs(tanVal) < 0.000001f) {
                 errorMessage = "Błąd: Asymptota pionowa cotangensa.";
@@ -584,14 +618,14 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
     if (trimmed.find("sin(") == 0 && trimmed.back() == ')') {
         size_t match = findMatchingParen(trimmed, 3);
         if (match == trimmed.length() - 1) {
-            return sin(parseExpression(x, trimmed.substr(4, trimmed.length() - 5)));
+            return sin(parseExpression(x, y, trimmed.substr(4, trimmed.length() - 5)));
         }
     }
 
     if (trimmed.find("cos(") == 0 && trimmed.back() == ')') {
         size_t match = findMatchingParen(trimmed, 3);
         if (match == trimmed.length() - 1) {
-            return cos(parseExpression(x, trimmed.substr(4, trimmed.length() - 5)));
+            return cos(parseExpression(x, y, trimmed.substr(4, trimmed.length() - 5)));
         }
     }
 
@@ -599,23 +633,25 @@ float MathExpressionParser::parseExpression(float x, const string& expr) {
         size_t match = findMatchingParen(trimmed, 3);
         if (match == trimmed.length() - 1) {
             string content = trimmed.substr(4, trimmed.length() - 5);
-            return fabs(parseExpression(x, content));
+            return fabs(parseExpression(x, y, content));
         }
     }
 
     if (trimmed.find("exp(") == 0 && trimmed.back() == ')') {
         size_t match = findMatchingParen(trimmed, 3);
         if (match == trimmed.length() - 1) {
-            return exp(parseExpression(x, trimmed.substr(4, trimmed.length() - 5)));
+            return exp(parseExpression(x, y, trimmed.substr(4, trimmed.length() - 5)));
         }
     }
 
     if (trimmed.find("e^") == 0) {
-        return exp(parseExpression(x, trimmed.substr(2)));
+        return exp(parseExpression(x, y, trimmed.substr(2)));
     }
 
     if (trimmed == "x") return x;
     if (trimmed == "-x") return -x;
+    if (trimmed == "y") return y;
+    if (trimmed == "-y") return -y;
     if (trimmed == "e") return static_cast<float>(M_E);
     if (trimmed == "pi") return static_cast<float>(M_PI);
 
@@ -643,7 +679,8 @@ void MathExpressionParser::detectFunctionType() {
     if (type != UNKNOWN) return;
     string expr = expression;
     if (isCircle) return;
-    if (!contains(expr, "x")) { type = HORIZONTAL_LINE; return; }
+    if (is3D) { type = UNKNOWN; return; }
+    if (!contains(expr, "x") && !contains(expr, "y")) { type = HORIZONTAL_LINE; return; }
     if (contains(expr, "sin(")) { type = SIN; return; }
     if (contains(expr, "cos(")) { type = COS; return; }
     if (contains(expr, "tan(")) { type = TAN; return; }
@@ -694,13 +731,17 @@ void MathExpressionParser::setExpression(const string& expr) {
 }
 
 float MathExpressionParser::evaluate(float x) {
+    return evaluate(x, 0.0f);
+}
+
+float MathExpressionParser::evaluate(float x, float y) {
     if (!errorMessage.empty() && errorMessage.find("Błąd matematyczny") == string::npos &&
         errorMessage.find("Błąd:") == string::npos) {
         return NAN;
     }
     errorMessage = "";
 
-    float result = parseExpression(x, expression);
+    float result = parseExpression(x, y, expression);
     if (!errorMessage.empty()) {
         return NAN;
     }
@@ -718,4 +759,6 @@ void MathExpressionParser::getCircleParams(float& cx, float& cy, float& r) const
     cy = circleCenterY;
     r = circleRadius;
 }
+bool MathExpressionParser::is3DFunction() const { return is3D; }
+float MathExpressionParser::getSphereRadius() const { return sphereRadius; }
 string MathExpressionParser::getErrorMessage() const { return errorMessage; }

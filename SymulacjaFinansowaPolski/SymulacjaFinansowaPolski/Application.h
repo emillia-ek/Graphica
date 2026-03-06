@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include "imgui.h"
 #include "MultiFunctionPlotter.h"
+#include "FunctionPlotter3D.h"
 #include "CoordinateSystem.h"
 
 class Application {
@@ -11,6 +12,7 @@ private:
     GLFWwindow* window;
 
     MultiFunctionPlotter plotter;
+    FunctionPlotter3D plotter3D;
     CoordinateSystem coordSystem;
 
     char equationInput[256];
@@ -18,6 +20,11 @@ private:
     bool showHelp;
     bool isDragging;
     double lastMouseX, lastMouseY;
+    
+    bool is3DMode;
+    float cameraPitch;
+    float cameraYaw;
+    float cameraDistance;
 
     bool initGLFW();
     void initImGui();

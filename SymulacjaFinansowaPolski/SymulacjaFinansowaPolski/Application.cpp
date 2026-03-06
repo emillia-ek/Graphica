@@ -16,7 +16,8 @@ using namespace std;
 
 static Application* g_ApplicationInstance = nullptr;
 Application::Application() : window(nullptr), rangeMin(-10.0f), rangeMax(10.0f),
-                            showHelp(false), isDragging(false), lastMouseX(0), lastMouseY(0) {
+                            showHelp(false), isDragging(false), lastMouseX(0), lastMouseY(0),
+                            is3DMode(false), cameraPitch(30.0f), cameraYaw(45.0f), cameraDistance(15.0f) {
     strcpy(equationInput, "y=x");
 }
 
@@ -72,23 +73,60 @@ void Application::render() {
         float dx = static_cast<float>((mouseX - lastMouseX) / width);
         float dy = static_cast<float>((mouseY - lastMouseY) / height);
 
-        coordSystem.pan(-dx, dy);
+        if (is3DMode) {
+            cameraYaw += dx * 180.0f;
+            cameraPitch += dy * 180.0f;
+            if (cameraPitch > 89.0f) cameraPitch = 89.0f;
+            if (cameraPitch < -89.0f) cameraPitch = -89.0f;
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+        } else {
+            coordSystem.pan(-dx, dy);
 
-        float xmin, xmax, ymin, ymax;
-        coordSystem.getViewRange(xmin, xmax, ymin, ymax);
-        plotter.setRange(xmin, xmax);
+            float xmin, xmax, ymin, ymax;
+            coordSystem.getViewRange(xmin, xmax, ymin, ymax);
+            plotter.setRange(xmin, xmax);
 
-        rangeMin = xmin;
-        rangeMax = xmax;
-        lastMouseX = mouseX;
-        lastMouseY = mouseY;
+            rangeMin = xmin;
+            rangeMax = xmax;
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+        }
     }
 
     glClearColor(0.08f, 0.08f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    coordSystem.draw(window);
-    plotter.draw();
+    if (is3DMode) {
+        glEnable(GL_DEPTH_TEST);
+        
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+        float aspect = (float)width / (float)height;
+
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        float mapFov = 45.0f;
+        float zNear = 0.1f;
+        float zFar = 20000.0f;
+        float ymax = zNear * tan(mapFov * M_PI / 360.0);
+        float xmax = ymax * aspect;
+        glFrustum(-xmax, xmax, -ymax, ymax, zNear, zFar);
+
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glTranslatef(0.0f, 0.0f, -cameraDistance);
+        glRotatef(cameraPitch, 1.0f, 0.0f, 0.0f);
+        glRotatef(cameraYaw, 0.0f, 1.0f, 0.0f);
+        glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+
+        plotter3D.draw();
+
+        glDisable(GL_DEPTH_TEST);
+    } else {
+        coordSystem.draw(window);
+        plotter.draw();
+    }
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -97,11 +135,17 @@ void Application::render() {
     ImGui::Begin("Function Controller", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
     ImGui::Text("Add Function:");
+    ImGui::Checkbox("3D Mode", &is3DMode);
+    
     ImGui::InputText("Equation", equationInput, IM_ARRAYSIZE(equationInput));
     ImGui::SameLine();
     if (ImGui::Button("Add")) {
         if (strlen(equationInput) > 0) {
-            plotter.addFunction(equationInput);
+            if (is3DMode) {
+                plotter3D.addFunction(equationInput);
+            } else {
+                plotter.addFunction(equationInput);
+            }
             strcpy(equationInput, "");
         }
     }
@@ -114,44 +158,63 @@ void Application::render() {
     ImGui::Text("Quick Add:");
 
 
-    if (ImGui::Button("y = x")) { plotter.addFunction("y=x"); }
-    ImGui::SameLine();
-    if (ImGui::Button("y = x^2")) { plotter.addFunction("y=x^2"); }
-    ImGui::SameLine();
-    if (ImGui::Button("y = x^3")) { plotter.addFunction("y=x^3"); }
-    ImGui::SameLine();
-    if (ImGui::Button("y = sin(x)")) { plotter.addFunction("y=sin(x)"); }
-    ImGui::SameLine();
-    if (ImGui::Button("y = cos(x)")) { plotter.addFunction("y=cos(x)"); }
+    if (is3DMode) {
+        ImGui::Text("Powierzchnie / Bryły 3D:");
+        if (ImGui::Button("Siodło: z = x^2 - y^2")) { plotter3D.addFunction("z=x^2-y^2"); }
+        ImGui::SameLine();
+        if (ImGui::Button("Paraboloida: z = x^2 + y^2")) { plotter3D.addFunction("z=x^2+y^2"); }
+
+        if (ImGui::Button("Stożek (góra/dół): x^2+y^2=z^2")) { plotter3D.addFunction("x^2+y^2=z^2"); }
+        ImGui::SameLine();
+        if (ImGui::Button("Pełna Kula: x^2+y^2+z^2=9")) { plotter3D.addFunction("x^2+y^2+z^2=9"); }
+
+        if (ImGui::Button("Półkula (góra): z = sqrt(16-x^2-y^2)")) { plotter3D.addFunction("z=sqrt(16-x^2-y^2)"); }
+        ImGui::SameLine();
+        if (ImGui::Button("Półkula (dół): z = -sqrt(16-x^2-y^2)")) { plotter3D.addFunction("z=-sqrt(16-x^2-y^2)"); }
+
+        if (ImGui::Button("Fale: z = sin(sqrt(x^2+y^2))")) { plotter3D.addFunction("z=sin(sqrt(x^2+y^2))"); }
+        ImGui::SameLine();
+        if (ImGui::Button("Tektura falista: z = sin(x)*cos(y)")) { plotter3D.addFunction("z=sin(x)*cos(y)"); }
+    } else {
+        if (ImGui::Button("y = x")) { plotter.addFunction("y=x"); }
+        ImGui::SameLine();
+        if (ImGui::Button("y = x^2")) { plotter.addFunction("y=x^2"); }
+        ImGui::SameLine();
+        if (ImGui::Button("y = x^3")) { plotter.addFunction("y=x^3"); }
+        ImGui::SameLine();
+        if (ImGui::Button("y = sin(x)")) { plotter.addFunction("y=sin(x)"); }
+        ImGui::SameLine();
+        if (ImGui::Button("y = cos(x)")) { plotter.addFunction("y=cos(x)"); }
 
 
-    if (ImGui::Button("y = tan(x)")) { plotter.addFunction("y=tan(x)"); }
-    ImGui::SameLine();
-    if (ImGui::Button("y = ctg(x)")) { plotter.addFunction("y=ctg(x)"); }
-    ImGui::SameLine();
-    if (ImGui::Button("y = e^x")) { plotter.addFunction("y=e^x"); }
-    ImGui::SameLine();
-    if (ImGui::Button("y = ln(x)")) { plotter.addFunction("y=ln(x)"); }
-    ImGui::SameLine();
-    if (ImGui::Button("y = sqrt(x)")) { plotter.addFunction("y=sqrt(x)"); }
+        if (ImGui::Button("y = tan(x)")) { plotter.addFunction("y=tan(x)"); }
+        ImGui::SameLine();
+        if (ImGui::Button("y = ctg(x)")) { plotter.addFunction("y=ctg(x)"); }
+        ImGui::SameLine();
+        if (ImGui::Button("y = e^x")) { plotter.addFunction("y=e^x"); }
+        ImGui::SameLine();
+        if (ImGui::Button("y = ln(x)")) { plotter.addFunction("y=ln(x)"); }
+        ImGui::SameLine();
+        if (ImGui::Button("y = sqrt(x)")) { plotter.addFunction("y=sqrt(x)"); }
 
-    if (ImGui::Button("y = abs(x)")) { plotter.addFunction("y=abs(x)"); }
-    ImGui::SameLine();
+        if (ImGui::Button("y = abs(x)")) { plotter.addFunction("y=abs(x)"); }
+        ImGui::SameLine();
 
-    if (ImGui::Button("y = 1/x")) { plotter.addFunction("y=1/x"); }
-    ImGui::SameLine();
-    if (ImGui::Button("y = sin(x)/x")) { plotter.addFunction("y=sin(x)/x"); }
-    ImGui::SameLine();
-    if (ImGui::Button("x = 5")) { plotter.addFunction("x=5"); }
-    ImGui::SameLine();
-    if (ImGui::Button("x^2 + y^2 = 4")) { plotter.addFunction("x^2+y^2=4"); }
+        if (ImGui::Button("y = 1/x")) { plotter.addFunction("y=1/x"); }
+        ImGui::SameLine();
+        if (ImGui::Button("y = sin(x)/x")) { plotter.addFunction("y=sin(x)/x"); }
+        ImGui::SameLine();
+        if (ImGui::Button("x = 5")) { plotter.addFunction("x=5"); }
+        ImGui::SameLine();
+        if (ImGui::Button("x^2 + y^2 = 4")) { plotter.addFunction("x^2+y^2=4"); }
 
-    if (ImGui::Button("(x-2)^2 + (y+3)^2 = 3")) { plotter.addFunction("(x-2)^2 + (y+3)^2 = 3"); }
-    ImGui::SameLine();
-    if (ImGui::Button("y = 2x + 3")) { plotter.addFunction("y=2*x+3"); }
+        if (ImGui::Button("(x-2)^2 + (y+3)^2 = 3")) { plotter.addFunction("(x-2)^2 + (y+3)^2 = 3"); }
+        ImGui::SameLine();
+        if (ImGui::Button("y = 2x + 3")) { plotter.addFunction("y=2*x+3"); }
+    }
 
     ImGui::Separator();
-    auto& functions = plotter.getFunctions();
+    auto& functions = is3DMode ? plotter3D.getFunctions() : plotter.getFunctions();
     ImGui::Text("Functions (%d):", static_cast<int>(functions.size()));
 
     if (ImGui::BeginChild("FunctionList", ImVec2(400, 250), true)) {
@@ -163,10 +226,11 @@ void Application::render() {
             checker.setExpression(functions[i].expression);
             string errorMsg = checker.getErrorMessage();
 
-            if (!errorMsg.empty()) {
+            if (!errorMsg.empty() || (is3DMode && !checker.is3DFunction()) || (!is3DMode && checker.is3DFunction())) {
                 ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "[!] ");
                 if (ImGui::IsItemHovered()) {
-                    ImGui::SetTooltip("%s", errorMsg.c_str());
+                    if (!errorMsg.empty()) ImGui::SetTooltip("%s", errorMsg.c_str());
+                    else ImGui::SetTooltip(is3DMode ? "Funkcja niezgodna w 3D" : "Funkcja niezgodna w 2D");
                 }
                 ImGui::SameLine();
             }
@@ -190,7 +254,8 @@ void Application::render() {
                 ImGui::SameLine();
                 if (ImGui::Button("V")) {
                     functions[i].applyEdit();
-                    plotter.editFunction(static_cast<int>(i), functions[i].expression);
+                    if (is3DMode) plotter3D.editFunction(static_cast<int>(i), functions[i].expression);
+                    else plotter.editFunction(static_cast<int>(i), functions[i].expression);
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("X")) {
@@ -211,7 +276,8 @@ void Application::render() {
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("X")) {
-                    plotter.removeFunction(static_cast<int>(i));
+                    if (is3DMode) plotter3D.removeFunction(static_cast<int>(i));
+                    else plotter.removeFunction(static_cast<int>(i));
                     ImGui::PopID();
                     break;
                 }
@@ -221,7 +287,10 @@ void Application::render() {
     }
     ImGui::EndChild();
 
-    if (ImGui::Button("Clear All")) { plotter.clear(); }
+    if (ImGui::Button("Clear All")) { 
+        if (is3DMode) plotter3D.clear();
+        else plotter.clear(); 
+    }
 
     ImGui::Separator();
     ImGui::Text("Zoom Controls:");
@@ -262,10 +331,10 @@ void Application::render() {
 
     if (showHelp) {
         ImGui::Begin("Help - Supported Functions", &showHelp, ImGuiWindowFlags_AlwaysAutoResize);
-        ImGui::BulletText("Basic: y=x^2, y=2*x+3");
-        ImGui::BulletText("Trig: sin(x), cos(x), tan(x)");
+        ImGui::BulletText("2D Basic: y=x^2, y=2*x+3");
+        ImGui::BulletText("2D Special: x=5 (vertical), x^2+y^2=9 (circle)");
+        ImGui::BulletText("3D Mode: z=sin(x)*cos(y), z=x^2+y^2");
         ImGui::BulletText("Math: ln(x), log(x), e^x, abs(x)");
-        ImGui::BulletText("Special: x=5 (vertical), x^2+y^2=9 (circle)");
         if (ImGui::Button("Close Help")) showHelp = false;
         ImGui::End();
     }
@@ -310,7 +379,24 @@ void Application::onMouseButton(int button, int action, int mods) {
 }
 
 void Application::onScroll(double xoffset, double yoffset) {
-    (void)xoffset; (void)yoffset;
+    if (is3DMode) {
+        cameraDistance -= yoffset;
+        if (cameraDistance < 1.0f) cameraDistance = 1.0f;
+    } else {
+        float factor = (yoffset > 0) ? 0.9f : 1.1f;
+        float xmin, xmax, ymin, ymax;
+        coordSystem.getViewRange(xmin, xmax, ymin, ymax);
+        
+        double mouseX, mouseY;
+        glfwGetCursorPos(window, &mouseX, &mouseY);
+        float centerX, centerY;
+        coordSystem.screenToGraph(window, (int)mouseX, (int)mouseY, centerX, centerY);
+        
+        coordSystem.zoom(factor, centerX, centerY);
+        coordSystem.getViewRange(xmin, xmax, ymin, ymax);
+        plotter.setRange(xmin, xmax);
+        rangeMin = xmin; rangeMax = xmax;
+    }
 }
 
 int Application::run() {

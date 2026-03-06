@@ -6,7 +6,8 @@
 
 enum FunctionType {
     UNKNOWN, LINEAR, QUADRATIC, POLYNOMIAL, SIN, COS, TAN, COT,
-    LOGARITHMIC, EXPONENTIAL, HORIZONTAL_LINE, VERTICAL_LINE, CIRCLE
+    LOGARITHMIC, EXPONENTIAL, HORIZONTAL_LINE, VERTICAL_LINE, CIRCLE,
+    SPHERE_3D, CONE_3D
 };
 
 class MathExpressionParser {
@@ -15,13 +16,16 @@ public:
 
     void setExpression(const std::string& expr);
     float evaluate(float x);
+    float evaluate(float x, float y);
 
     FunctionType getType() const;
     std::string getExpression() const;
     float getVerticalLineX() const;
     float getHorizontalLineY() const;
     bool isCircleEquation() const;
+    bool is3DFunction() const;
     void getCircleParams(float& cx, float& cy, float& r) const;
+    float getSphereRadius() const;
     std::string getErrorMessage() const;
 
 private:
@@ -37,7 +41,7 @@ private:
     void parsePolynomial(const std::string& expr);
     void detectFunctionType();
 
-    float parseExpression(float x, const std::string& expr);
+    float parseExpression(float x, float y, const std::string& expr);
     size_t findMatchingParen(const std::string& str, size_t start);
 
     std::string expression;
@@ -53,6 +57,8 @@ private:
     float circleCenterY;
     float circleRadius;
     bool isCircle;
+    bool is3D;
+    float sphereRadius;
 
     // Wielomian
     struct PolynomialTerm {
